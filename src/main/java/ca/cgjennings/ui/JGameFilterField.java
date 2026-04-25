@@ -89,7 +89,7 @@ public class JGameFilterField extends JComboBox<Game> {
                     return this;
                 }
             });
-            setModel(new DefaultComboBoxModel<>(Game.getGames(false)));
+            setModel(new DefaultComboBoxModel<>(Game.getGames(true)));
             setSelectedItem(Settings.getUser().get(KEY, ""));
 
             // add listeners after default value set so that events are not fired during init
@@ -154,9 +154,14 @@ public class JGameFilterField extends JComboBox<Game> {
         }
         DefaultComboBoxModel<Game> m = (DefaultComboBoxModel<Game>) getModel();
         for (int i = 0; i < m.getSize(); ++i) {
-            String t = ((Game) m.getElementAt(i)).getUIName().trim();
+            Game g = m.getElementAt(i);
+            String t = g.getUIName().trim();
             if (t.equalsIgnoreCase(v)) {
-                return m.getElementAt(i);
+                // treat the "All Games" pseudo-entry as an empty filter
+                if (Game.ALL_GAMES_CODE.equals(g.getCode())) {
+                    return null;
+                }
+                return g;
             }
         }
         return v;

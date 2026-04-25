@@ -535,9 +535,9 @@ public final class NewEditorDialog extends javax.swing.JDialog {
             final Settings s = Settings.getUser();
             s.storeWindowSettings("neweditor", this);
             Object filter = gameFilter.getSelectedItem();
-            if (filter != null) {
-                s.set(FILTER_KEY, filter.toString());
-            }
+            // persist the filter — including an empty/cleared value, so users
+            // can reset the filter across sessions (issue #148)
+            s.set(FILTER_KEY, filter == null ? "" : filter.toString());
         }
         super.dispose();
     }
