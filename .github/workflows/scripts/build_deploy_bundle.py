@@ -151,16 +151,33 @@ def format_listing(entry: dict) -> str:
     )
 
 
+def format_plugin_listing(uuid: str, entry: dict) -> str:
+    """Render one visible plugin catalog listing from a manifest plugin entry.
+
+    The catalog_block field carries the catalog-* properties from the bundle's
+    eons-plugin file (with the catalog- prefix stripped), preserving line
+    continuations and localized variants verbatim.
+    """
+    return (
+        f"url = {entry['filename']}\n"
+        f"{entry['catalog_block']}\n"
+        f"size = {entry['size']}\n"
+        f"md5 = {entry['md5']}\n"
+        f"id = {entry['catalog_id']}\n"
+    )
+
+
 def write_catalog(output_dir: Path, manifest: dict, when: datetime.datetime):
-    """Emit catalog.txt with one listing per channel present in the manifest.
+    """Emit catalog.txt: hidden app listings + visible plugin listings.
 
     AutomaticUpdater.isApplicationUpdateAvailable scans a single catalog for
     both APP_STABLE and APP_EXPERIMENTAL UUIDs; both must be present so users
     on either channel see the right update.
 
-    hidden = yes keeps each listing out of CatalogDialog (which iterates
+    hidden = yes keeps each app listing out of CatalogDialog (which iterates
     catalog.size(), excluding hidden entries) while leaving it visible to
-    AutomaticUpdater.findListingByUUID, which scans the full list.
+    AutomaticUpdater.findListingByUUID, which scans the full list. Plugin
+    listings are NOT hidden -- users explicitly browse them in CatalogDialog.
     """
     updates_dir = output_dir / "updates"
     updates_dir.mkdir(exist_ok=True)
@@ -170,6 +187,11 @@ def write_catalog(output_dir: Path, manifest: dict, when: datetime.datetime):
         entry = manifest.get(channel)
         if entry and entry.get("catalog_id"):
             listings.append(format_listing(entry))
+    plugins = manifest.get("plugins", {})
+    for uuid in sorted(plugins.keys()):
+        listings.append(format_plugin_listing(uuid, plugins[uuid]))
+    n_app = sum(1 for c in ("stable", "experimental")
+                if manifest.get(c) and manifest[c].get("catalog_id"))
     if not listings:
         body = (
             f"# Strange Eons combined catalog\n"
@@ -184,7 +206,7 @@ def write_catalog(output_dir: Path, manifest: dict, when: datetime.datetime):
             + "\n".join(listings)
         )
     cat.write_text(body, encoding="utf-8")
-    print(f"  catalog: {cat.relative_to(output_dir)} ({len(listings)} listing{'s' if len(listings) != 1 else ''})")
+    print(f"  catalog: {cat.relative_to(output_dir)} ({n_app} app, {len(plugins)} plugin)")
 
 
 def load_existing_manifest(path):
@@ -295,14 +317,16 @@ def write_index(output_dir: Path, manifest: dict):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--artifacts-dir", required=True, type=Path)
     ap.add_argument("--output-dir",    required=True, type=Path)
-    ap.add_argument("--version",       required=True, help="e.g. 3.5.0")
-    ap.add_argument("--build",         required=True, type=int)
-    ap.add_argument("--type",          required=True,
-                    choices=["GENERAL", "ALPHA", "BETA", "DEVELOPMENT"])
-    ap.add_argument("--channel",       required=True,
-                    choices=["stable", "experimental"])
+    ap.add_argument("--regenerate-catalog-only", action="store_true",
+                    help="Skip artifact collection and index/manifest writing; just regenerate "
+                         "catalog.txt from --existing-manifest. For ad-hoc runs after add-plugin.py.")
+    # Release-build args (required unless --regenerate-catalog-only)
+    ap.add_argument("--artifacts-dir", type=Path)
+    ap.add_argument("--version",       help="e.g. 3.5.0")
+    ap.add_argument("--build",         type=int)
+    ap.add_argument("--type",          choices=["GENERAL", "ALPHA", "BETA", "DEVELOPMENT"])
+    ap.add_argument("--channel",       choices=["stable", "experimental"])
     ap.add_argument("--suffix",        default="",
                     help="Tag suffix (e.g. alpha, test3). Ignored for stable channel.")
     ap.add_argument("--existing-manifest", type=Path, default=None,
@@ -310,6 +334,21 @@ def main():
     args = ap.parse_args()
 
     when = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+
+    if args.regenerate_catalog_only:
+        if args.existing_manifest is None:
+            ap.error("--regenerate-catalog-only requires --existing-manifest")
+        manifest = load_existing_manifest(args.existing_manifest)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        write_catalog(args.output_dir, manifest, when)
+        print(f"Done. Output: {args.output_dir}")
+        return
+
+    missing = [name for name in ("artifacts_dir", "version", "build", "type", "channel")
+               if getattr(args, name) is None]
+    if missing:
+        ap.error(f"missing required release args: {', '.join('--' + m.replace('_', '-') for m in missing)}")
+
     # Stable releases never carry a suffix in filenames; pre-release builds do.
     suffix = "" if args.channel == "stable" else args.suffix
     dash_suffix = f"-{suffix}" if suffix else ""

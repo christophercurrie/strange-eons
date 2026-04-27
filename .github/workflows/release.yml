@@ -183,7 +183,7 @@ jobs:
           echo "Existing manifest:"; cat existing-manifest.json
       - name: Build deploy bundle
         run: |
-          python3 .github/workflows/scripts/build-deploy-bundle.py \
+          python3 .github/workflows/scripts/build_deploy_bundle.py \
             --artifacts-dir artifacts \
             --output-dir bundle \
             --version ${{ needs.parse-version.outputs.version }} \
