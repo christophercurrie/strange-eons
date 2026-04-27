@@ -250,6 +250,32 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <!--
+                            maven-shade-plugin renames the pre-shade jar to
+                            original-strange-eons.jar in the same output dir. If
+                            left, jpackage's input scan picks it up and bundles
+                            both jars in the installer. Delete it once shade has
+                            run so only the shaded jar reaches jpackage.
+                        -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>remove-unshaded-original</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <delete>
+                                            <fileset dir="${project.basedir}/deployment/assembled" includes="original-*.jar" erroronmissingdir="false"/>
+                                        </delete>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -284,6 +310,7 @@
                             <icon>${project.basedir}/deployment/assets/icons/app/48.png</icon>
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
+                                <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
@@ -357,6 +384,7 @@
                             <icon>${project.basedir}/deployment/assets/icons/app/application.icns</icon>
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
+                                <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
@@ -401,6 +429,7 @@
                             <icon>${project.basedir}/deployment/assets/icons/app/application.ico</icon>
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
+                                <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
