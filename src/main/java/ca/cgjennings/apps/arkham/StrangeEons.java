@@ -120,12 +120,7 @@ public final class StrangeEons {
     /**
      * Minimum JRE version to enforce during startup.
      */
-    private static final int JAVA_VERSION_MIN = 11;
-    /**
-     * Maximum JRE version to enforce during startup.
-     * May be the same as {@link #JAVA_VERSION_MIN}.
-     */
-    private static final int JAVA_VERSION_MAX = 11;    
+    private static final int JAVA_VERSION_MIN = 25;
 
     static {
         // Detect version details that were generated during app packaging;
@@ -2238,10 +2233,9 @@ public final class StrangeEons {
      * {@link #initCheckSystemConfig()} so that it can display a localized
      * dialog box.
      */
-    @SuppressWarnings("all") // comparison of possibly equal versions
     private void initCheckJREVersion(boolean fatalIfNotSupported) {
         int[] ver = getJavaVersion();
-        final boolean isSupportedVersion = (ver[0] >= JAVA_VERSION_MIN) && (ver[0] <= JAVA_VERSION_MAX);
+        final boolean isSupportedVersion = ver[0] >= JAVA_VERSION_MIN;
         if (!isSupportedVersion) {
             if (fatalIfNotSupported) {
                 try {
@@ -2252,15 +2246,10 @@ public final class StrangeEons {
                         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException t) {
                             // ignore, use whatever L&F is available
                         }
-                        final String errorMessage;
-                        if (JAVA_VERSION_MIN == JAVA_VERSION_MAX) {
-                            errorMessage = string("rk-err-java-version", Integer.toString(JAVA_VERSION_MIN));
-                        } else {
-                            errorMessage = string("rk-err-java-version-range", Integer.toString(JAVA_VERSION_MIN), Integer.toString(JAVA_VERSION_MAX));
-                        }
                         JOptionPane.showMessageDialog(
                                 getSafeStartupParentWindow(),
-                                errorMessage, "Strange Eons",
+                                string("rk-err-java-version", Integer.toString(JAVA_VERSION_MIN)),
+                                "Strange Eons",
                                 JOptionPane.ERROR_MESSAGE
                         );
                         System.exit(20);

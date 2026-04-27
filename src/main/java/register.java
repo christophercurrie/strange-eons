@@ -122,7 +122,7 @@ public final class register extends CommandLineParser {
     /**
      * Version number for minimum Java version we need to locate.
      */
-    private static final String MIN_JAVA_VERSION = "11+"; // e.g. 8.0_56+
+    private static final String MIN_JAVA_VERSION = "25";
 
     @Override
     protected void displayUsageText(Object target) {
