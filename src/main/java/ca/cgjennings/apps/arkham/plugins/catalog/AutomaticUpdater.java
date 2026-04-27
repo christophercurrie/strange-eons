@@ -517,6 +517,9 @@ public class AutomaticUpdater {
         automaticUpdateTimer.setRepeats(false);
     }
 
-    private static final UUID APP_STABLE = UUID.fromString("c6d49b71-5321-4f42-b77f-5d3fd119d8f3");
-    private static final UUID APP_EXPERIMENTAL = UUID.fromString("a334a2b6-8a46-47b3-8a43-5ab3a1c85ced");
+    // Fork-channel app-update IDs. Distinct from upstream's so that fork
+    // releases on the fizmo.org catalog do not collide with any future
+    // upstream releases. Once published these values must never change.
+    private static final UUID APP_STABLE = UUID.fromString("c8d1620e-5eeb-47f4-9ef2-49e9947faa90");
+    private static final UUID APP_EXPERIMENTAL = UUID.fromString("1b7ef4bd-f63a-4884-9979-830d4feb18b8");
 }
