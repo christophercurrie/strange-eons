@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AbstractGameComponentEditorTest {
 
@@ -27,6 +28,12 @@ class AbstractGameComponentEditorTest {
     void disposeRemovesViewBackdropPropertyChangeListener() {
         AppFrame mockAppFrame = mock(AppFrame.class);
         StrangeEons mockApp = mock(StrangeEons.class);
+        // ResourceKit's static initializer dereferences
+        // StrangeEons.getApplication().getCommandLineArguments().resfolder.
+        // Without this stub the EDT-scheduled createTimer call from the
+        // editor constructor triggers a chain of class-init failures.
+        CommandLineArguments mockArgs = mock(CommandLineArguments.class);
+        when(mockApp.getCommandLineArguments()).thenReturn(mockArgs);
 
         try (MockedStatic<AppFrame> mockedAppFrame = mockStatic(AppFrame.class);
                 MockedStatic<StrangeEons> mockedStrangeEons = mockStatic(StrangeEons.class)) {
@@ -58,6 +65,16 @@ class AbstractGameComponentEditorTest {
     private static final class TestEditor extends AbstractGameComponentEditor<GameComponent> {
         @Override
         protected void populateComponentFromDelayedFields() {
+        }
+
+        // The base constructor schedules an EDT lambda that calls createTimer
+        // by way of Settings.getShared().getInt(...). Outside a real app the
+        // settings backing store is empty, which causes Settings.ParseError ->
+        // Language.string -> ScriptMonkey.scriptError, a deep init chain that
+        // floods stderr with NPEs. Overriding createTimer to a no-op stops the
+        // chain at the doorstep.
+        @Override
+        protected void createTimer() {
         }
     }
 }
