@@ -19,7 +19,7 @@ Typical usage:
 
     python3 build_deploy_bundle.py \\
         --output-dir upload \\
-        --regenerate-catalog-only \\
+        --regenerate-only \\
         --existing-manifest manifest.json
 
     cp manifest.json upload/manifest.json

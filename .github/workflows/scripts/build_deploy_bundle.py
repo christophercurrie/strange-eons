@@ -251,9 +251,16 @@ INDEX_TEMPLATE = """<!doctype html>
     .note {{ color: #666; font-size: 0.9em; }}
     .empty {{ color: #888; font-style: italic; }}
     a.docs {{ display: inline-block; margin-top: 1rem; }}
+    .github-ribbon {{ position: fixed; top: 0; right: 0; border: 0; z-index: 1000; }}
   </style>
 </head>
 <body>
+  <a href="https://github.com/christophercurrie/strange-eons">
+    <img class="github-ribbon"
+         src="https://github.blog/wp-content/uploads/2008/12/forkme_right_darkblue_121621.png"
+         alt="Fork me on GitHub"
+         loading="lazy" decoding="async" width="149" height="149">
+  </a>
   <h1>Strange Eons</h1>
 {sections}
   <a class="docs" href="https://strangeeons.cgjennings.ca/">Documentation (upstream)</a>
@@ -318,9 +325,10 @@ def write_index(output_dir: Path, manifest: dict):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--output-dir",    required=True, type=Path)
-    ap.add_argument("--regenerate-catalog-only", action="store_true",
-                    help="Skip artifact collection and index/manifest writing; just regenerate "
-                         "catalog.txt from --existing-manifest. For ad-hoc runs after add-plugin.py.")
+    ap.add_argument("--regenerate-only", action="store_true",
+                    help="Skip artifact collection and manifest writing; just regenerate "
+                         "catalog.txt and index.html from --existing-manifest. For ad-hoc "
+                         "runs after add-plugin.py or after editing the index template.")
     # Release-build args (required unless --regenerate-catalog-only)
     ap.add_argument("--artifacts-dir", type=Path)
     ap.add_argument("--version",       help="e.g. 3.5.0")
@@ -335,12 +343,13 @@ def main():
 
     when = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
 
-    if args.regenerate_catalog_only:
+    if args.regenerate_only:
         if args.existing_manifest is None:
-            ap.error("--regenerate-catalog-only requires --existing-manifest")
+            ap.error("--regenerate-only requires --existing-manifest")
         manifest = load_existing_manifest(args.existing_manifest)
         args.output_dir.mkdir(parents=True, exist_ok=True)
         write_catalog(args.output_dir, manifest, when)
+        write_index(args.output_dir, manifest)
         print(f"Done. Output: {args.output_dir}")
         return
 
