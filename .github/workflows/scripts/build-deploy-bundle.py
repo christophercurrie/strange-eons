@@ -135,29 +135,56 @@ def catalog_id(channel: str, when: datetime.datetime) -> str:
     return f"CATALOGUEID{{{uuid}:{date}}}"
 
 
-def write_catalog(output_dir: Path, version: str, build: int,
-                  channel: str, when: datetime.datetime):
+def format_listing(entry: dict) -> str:
+    """Render one app catalog listing from a manifest entry."""
+    suffix = entry.get("suffix") or ""
+    version_label = f"{entry['version']}{('-' + suffix) if suffix else ''}"
+    return (
+        f"name = Strange Eons {version_label}\n"
+        f"description = Update to Strange Eons {version_label} (build {entry['build']})\n"
+        f"version = {entry['build']}\n"
+        f"url = https://strangeeons.fizmo.org/\n"
+        f"homepage = https://strangeeons.fizmo.org/\n"
+        f"date = {entry['released']}\n"
+        f"id = {entry['catalog_id']}\n"
+        f"hidden = yes\n"
+    )
+
+
+def write_catalog(output_dir: Path, manifest: dict, when: datetime.datetime):
+    """Emit catalog.txt with one listing per channel present in the manifest.
+
+    AutomaticUpdater.isApplicationUpdateAvailable scans a single catalog for
+    both APP_STABLE and APP_EXPERIMENTAL UUIDs; both must be present so users
+    on either channel see the right update.
+
+    hidden = yes keeps each listing out of CatalogDialog (which iterates
+    catalog.size(), excluding hidden entries) while leaving it visible to
+    AutomaticUpdater.findListingByUUID, which scans the full list.
+    """
     updates_dir = output_dir / "updates"
     updates_dir.mkdir(exist_ok=True)
     cat = updates_dir / "catalog.txt"
-    # hidden = yes keeps the listing out of CatalogDialog (which iterates
-    # catalog.size(), excluding hidden entries) while leaving it visible to
-    # AutomaticUpdater.findListingByUUID, which scans the full list.
-    body = (
-        f"# Strange Eons {channel} catalog\n"
-        f"# Generated {when.isoformat()}\n"
-        f"\n"
-        f"name = Strange Eons {version}\n"
-        f"description = Update to Strange Eons {version} (build {build})\n"
-        f"version = {build}\n"
-        f"url = https://strangeeons.fizmo.org/\n"
-        f"homepage = https://strangeeons.fizmo.org/\n"
-        f"date = {when.strftime('%Y-%m-%d')}\n"
-        f"id = {catalog_id(channel, when)}\n"
-        f"hidden = yes\n"
-    )
+    listings = []
+    for channel in ("stable", "experimental"):
+        entry = manifest.get(channel)
+        if entry and entry.get("catalog_id"):
+            listings.append(format_listing(entry))
+    if not listings:
+        body = (
+            f"# Strange Eons combined catalog\n"
+            f"# Generated {when.isoformat()}\n"
+            f"# (no channels published yet)\n"
+        )
+    else:
+        body = (
+            f"# Strange Eons combined catalog\n"
+            f"# Generated {when.isoformat()}\n"
+            f"\n"
+            + "\n".join(listings)
+        )
     cat.write_text(body, encoding="utf-8")
-    print(f"  catalog: {cat.relative_to(output_dir)}")
+    print(f"  catalog: {cat.relative_to(output_dir)} ({len(listings)} listing{'s' if len(listings) != 1 else ''})")
 
 
 def load_existing_manifest(path):
@@ -298,12 +325,16 @@ def main():
         "type": args.type,
         "released": when.strftime("%Y-%m-%d"),
         "suffix": suffix,
+        # catalog_id timestamp is generated once per build and preserved in the
+        # manifest so subsequent deploys for the OTHER channel don't accidentally
+        # bump this listing's date.
+        "catalog_id": catalog_id(args.channel, when),
         "files": installers,
     }
     manifest = merge_manifest(existing, args.channel, entry)
 
     write_manifest(args.output_dir, manifest)
-    write_catalog(args.output_dir, args.version, args.build, args.channel, when)
+    write_catalog(args.output_dir, manifest, when)
     write_index(args.output_dir, manifest)
     print(f"Done. Output: {args.output_dir}")
 
