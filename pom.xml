@@ -290,11 +290,14 @@
                                 <option>-Xms1g</option>
                                 <option>-Xss1m</option>
                             </javaOptions>
-                            <linuxPackageName>strange-eons</linuxPackageName>
-                            <linuxAppCategory>Graphics</linuxAppCategory>
-                            <linuxMenuGroup>Graphics</linuxMenuGroup>
-                            <linuxShortcut>true</linuxShortcut>
                         </configuration>
+                        <!--
+                            Linux packaging options (linuxPackageName, linuxAppCategory,
+                            linuxMenuGroup, linuxShortcut) are valid only for type
+                            deb/rpm. If put in the shared configuration the app-image
+                            execution fails with "Option linux-package-name is not
+                            valid with type app-image". Keep them per-execution.
+                        -->
                         <executions>
                             <execution>
                                 <id>jpackage-deb</id>
@@ -302,6 +305,10 @@
                                 <goals><goal>jpackage</goal></goals>
                                 <configuration>
                                     <type>DEB</type>
+                                    <linuxPackageName>strange-eons</linuxPackageName>
+                                    <linuxAppCategory>Graphics</linuxAppCategory>
+                                    <linuxMenuGroup>Graphics</linuxMenuGroup>
+                                    <linuxShortcut>true</linuxShortcut>
                                 </configuration>
                             </execution>
                             <execution>
@@ -310,6 +317,10 @@
                                 <goals><goal>jpackage</goal></goals>
                                 <configuration>
                                     <type>RPM</type>
+                                    <linuxPackageName>strange-eons</linuxPackageName>
+                                    <linuxAppCategory>Graphics</linuxAppCategory>
+                                    <linuxMenuGroup>Graphics</linuxMenuGroup>
+                                    <linuxShortcut>true</linuxShortcut>
                                 </configuration>
                             </execution>
                             <execution>
