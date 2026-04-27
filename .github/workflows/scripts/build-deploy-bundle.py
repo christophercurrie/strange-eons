@@ -127,6 +127,9 @@ def write_catalog(output_dir: Path, version: str, build: int,
     updates_dir = output_dir / "updates"
     updates_dir.mkdir(exist_ok=True)
     cat = updates_dir / "catalog.txt"
+    # hidden = yes keeps the listing out of CatalogDialog (which iterates
+    # catalog.size(), excluding hidden entries) while leaving it visible to
+    # AutomaticUpdater.findListingByUUID, which scans the full list.
     body = (
         f"# Strange Eons {channel} catalog\n"
         f"# Generated {when.isoformat()}\n"
@@ -138,6 +141,7 @@ def write_catalog(output_dir: Path, version: str, build: int,
         f"homepage = https://strangeeons.fizmo.org/\n"
         f"date = {when.strftime('%Y-%m-%d')}\n"
         f"id = {catalog_id(channel, when)}\n"
+        f"hidden = yes\n"
     )
     cat.write_text(body, encoding="utf-8")
     print(f"  catalog: {cat.relative_to(output_dir)}")
