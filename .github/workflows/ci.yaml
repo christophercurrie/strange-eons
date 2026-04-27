@@ -18,5 +18,12 @@ jobs:
         java-version: '25'
         distribution: 'temurin'
         cache: maven
+    - name: Install Xvfb (virtual display for AWT)
+      # Several Strange Eons classes touch AWT in their static initializers
+      # (PlatformSupport, AbstractStrangeEonsEditor, etc.). Mockito's class
+      # instrumentation triggers those <clinit>s, which throw HeadlessException
+      # on a headless runner. Wrap the test JVM in xvfb-run so AWT has a
+      # display. Tracked by issue #4 for a longer-term audit.
+      run: sudo apt-get update && sudo apt-get install -y xvfb
     - name: Build with Maven
-      run: mvn -B verify --file pom.xml
+      run: xvfb-run -a mvn -B verify --file pom.xml

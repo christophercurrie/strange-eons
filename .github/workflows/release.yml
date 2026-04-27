@@ -86,22 +86,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # mvn_prefix wraps the build invocation; only Linux needs Xvfb to
+          # provide a display for static initializers that touch AWT (see
+          # issue #4). Empty on macOS/Windows where AWT is available natively.
           - os: ubuntu-latest
             profile: jpackage-linux
             artifact: strange-eons-linux
-            extra_setup: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+            extra_setup: sudo apt-get update && sudo apt-get install -y rpm fakeroot xvfb
+            mvn_prefix: xvfb-run -a
           - os: macos-15-intel
             profile: jpackage-mac
             artifact: strange-eons-macos-x64
             extra_setup: ''
+            mvn_prefix: ''
           - os: macos-15
             profile: jpackage-mac
             artifact: strange-eons-macos-aarch64
             extra_setup: ''
+            mvn_prefix: ''
           - os: windows-latest
             profile: jpackage-win
             artifact: strange-eons-windows
             extra_setup: ''
+            mvn_prefix: ''
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +124,7 @@ jobs:
       - name: Build native installers
         shell: bash
         run: |
-          mvn -B \
+          ${{ matrix.mvn_prefix }} mvn -B \
             -Dapp.major=${{ needs.parse-version.outputs.major }} \
             -Dapp.minor=${{ needs.parse-version.outputs.minor }} \
             -Dapp.patch=${{ needs.parse-version.outputs.patch }} \
