@@ -28,6 +28,7 @@ jobs:
       build: ${{ steps.parse.outputs.build }}
       type: ${{ steps.parse.outputs.type }}
       version: ${{ steps.parse.outputs.version }}
+      suffix: ${{ steps.parse.outputs.suffix }}
     steps:
       - name: Checkout (with full history for rev-list)
         uses: actions/checkout@v4
@@ -50,7 +51,8 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          TYPE="${BASH_REMATCH[5]}"
+          SUFFIX="${BASH_REMATCH[5]}"
+          TYPE="$SUFFIX"
           # Bare version (no -suffix) is the only thing routed to the stable
           # channel; any pre-release suffix (alpha/beta/test/rc/etc.) maps to
           # an experimental release type.
@@ -75,7 +77,8 @@ jobs:
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "type=$TYPE"   >> "$GITHUB_OUTPUT"
           echo "version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: $MAJOR.$MINOR.$PATCH ($TYPE), build $BUILD"
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $MAJOR.$MINOR.$PATCH${SUFFIX:+-$SUFFIX} ($TYPE), build $BUILD"
 
   build:
     needs: parse-version
@@ -165,6 +168,12 @@ jobs:
             GENERAL) echo "channel=stable" >> "$GITHUB_OUTPUT" ;;
             *)       echo "channel=experimental" >> "$GITHUB_OUTPUT" ;;
           esac
+      - name: Fetch existing manifest from server
+        # Allow 404 on first deploy; build-deploy-bundle.py treats missing file as empty.
+        run: |
+          curl -fsSL https://strangeeons.fizmo.org/manifest.json -o existing-manifest.json \
+            || echo "{}" > existing-manifest.json
+          echo "Existing manifest:"; cat existing-manifest.json
       - name: Build deploy bundle
         run: |
           python3 .github/workflows/scripts/build-deploy-bundle.py \
@@ -173,10 +182,16 @@ jobs:
             --version ${{ needs.parse-version.outputs.version }} \
             --build   ${{ needs.parse-version.outputs.build }} \
             --type    ${{ needs.parse-version.outputs.type }} \
-            --channel ${{ steps.channel.outputs.channel }}
+            --channel ${{ steps.channel.outputs.channel }} \
+            --suffix  "${{ needs.parse-version.outputs.suffix }}" \
+            --existing-manifest existing-manifest.json
       - name: Rsync bundle to OpalStack
+        # No --delete-after: the other channel's installers live on the server
+        # and are referenced from manifest.json + index.html but not present in
+        # this build's bundle. Orphan files from older pre-release suffixes
+        # accumulate slowly; manual server-side cleanup if needed.
         run: |
-          rsync -avz --delete-after \
+          rsync -avz \
             -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes" \
             bundle/ \
             strangeeons@opal20.opalstack.com:~/apps/strangeeons/
