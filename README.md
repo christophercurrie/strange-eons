@@ -37,9 +37,10 @@ and more.
 ## Getting started
 
 Typical users can download and install Strange Eons from the
-[Strange Eons website](https://strangeeons.cgjennings.ca/).
-A [user manual and other documentation are available](https://se3docs.cgjennings.ca/index.html)
-if you would like help getting started.
+[Strange Eons download page](https://strangeeons.fizmo.org/).
+A [user manual and other documentation](https://se3docs.cgjennings.ca/index.html)
+remain hosted on the original project's site if you would like help
+getting started.
 
 This GitHub page is for developers and other experienced users who
 want to try the latest features or contribute to the project.
@@ -56,9 +57,9 @@ you may find the [GitHub Desktop](https://desktop.github.com/) client
 easier to use than the command line.
 (Your IDE might also have support for Git, either built in or as an extension/plug-in.)
 
-2. **JDK 11**. The main branch is currently based on Java 11.
+2. **JDK 25**. The main branch requires Java 25 or later.
 You can download a suitable JDK from
-[Adoptium](https://adoptium.net/temurin/releases/?version=11).
+[Adoptium](https://adoptium.net/temurin/releases/?version=25).
 
 3. **Maven**. Maven is used to build the project. Again, this may
 already be included with your IDE if you use one. If not, you can
@@ -109,31 +110,6 @@ are included in this repository:
 
 **In VS Code,** open the project folder (**File/Open Folder**) then select and
 run the project (**Run/Run Without Debugging**, default key Ctrl+F5).
-
-To build installers for deployment to Windows, macOS, and Linux, you can use:
-
-```bash
-node deployment/deploy.js
-```
-
-The following arguments can tailor the process:
-
- - `--version`: specify a version number for the build, such as 3.4a1 for "3.4 alpha 1"
- - `--platform`: build one platform only: `windows`, `macos`, `linux` or `other`
- - `--simulate`: don't actually build anything, just print what would be done
- - `--noclean`: don't delete previous deployment artifacts
-
-For the full argument list, run `node deployment/deploy.js --help`.
-
-After the main build process, the directory `local-private` is
-checked for additional scripts to automate tasks like signing.
-See source for details if you need to use this feature. 
-
-This relies on a commercial third-party tool,
-[Install4J](https://www.ej-technologies.com/products/install4j/overview.html).
-The script will guess at the location of Install4J, but if that fails
-you can set the `INSTALL4J_BIN` environment variable to the path to the
-`bin` directory containing `install4jc`, or pass it with `--install4j`.
 
 ### Additional tools
 
