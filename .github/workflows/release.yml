@@ -117,7 +117,7 @@ jobs:
       - name: Build native installers
         shell: bash
         run: |
-          mvn -B -DskipTests \
+          mvn -B \
             -Dapp.major=${{ needs.parse-version.outputs.major }} \
             -Dapp.minor=${{ needs.parse-version.outputs.minor }} \
             -Dapp.patch=${{ needs.parse-version.outputs.patch }} \
