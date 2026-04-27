@@ -169,7 +169,7 @@ class UpdateMessage {
                     : (PlatformSupport.PLATFORM_IS_MAC ? "osx" : "nix");
             String version = String.valueOf(StrangeEons.getBuildNumber());
             appURI = new URI(
-                    "http://cgjennings.ca/eons/download/update.html?platform=" + os + "&version=" + version
+                    "https://strangeeons.fizmo.org/?platform=" + os + "&version=" + version
             );
         } catch (URISyntaxException ex) {
             StrangeEons.log.log(Level.SEVERE, null, ex);

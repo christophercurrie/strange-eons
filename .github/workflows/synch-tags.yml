@@ -7,6 +7,10 @@ on:
 
 jobs:
   sync-tags:
+    # Only the upstream repo's GITHUB_TOKEN has write access to the
+    # CGJennings/se3docs docs repo. On forks the cross-repo tag creation
+    # always fails, so skip the job entirely.
+    if: github.repository == 'CGJennings/strange-eons'
     runs-on: ubuntu-latest
     steps:
       - name: Create same tag on doc repository

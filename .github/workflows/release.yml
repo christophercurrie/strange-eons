@@ -1,0 +1,197 @@
+name: Release
+
+# Triggered by pushing a tag matching v<major>.<minor>.<patch>[-<type>]
+# (e.g., v3.5.0, v3.5.0-alpha, v3.5.0-beta1). workflow_dispatch lets us
+# rehearse the workflow without cutting a real tag.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 3.5.0-test1). For dispatch only; tag pushes use the tag name.'
+        required: true
+        default: '3.5.0-test1'
+
+permissions:
+  contents: read
+
+jobs:
+  parse-version:
+    runs-on: ubuntu-latest
+    outputs:
+      major: ${{ steps.parse.outputs.major }}
+      minor: ${{ steps.parse.outputs.minor }}
+      patch: ${{ steps.parse.outputs.patch }}
+      build: ${{ steps.parse.outputs.build }}
+      type: ${{ steps.parse.outputs.type }}
+      version: ${{ steps.parse.outputs.version }}
+      suffix: ${{ steps.parse.outputs.suffix }}
+    steps:
+      - name: Checkout (with full history for rev-list)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Parse version
+        id: parse
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RAW="${{ inputs.version }}"
+          else
+            RAW="${GITHUB_REF#refs/tags/v}"
+          fi
+          if [[ ! "$RAW" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
+            echo "::error::Version '$RAW' does not match v<major>.<minor>.<patch>[-<type>]"
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          SUFFIX="${BASH_REMATCH[5]}"
+          TYPE="$SUFFIX"
+          # Bare version (no -suffix) is the only thing routed to the stable
+          # channel; any pre-release suffix (alpha/beta/test/rc/etc.) maps to
+          # an experimental release type.
+          case "${TYPE,,}" in
+            "")     TYPE=GENERAL ;;
+            alpha*) TYPE=ALPHA ;;
+            beta*)  TYPE=BETA ;;
+            *)      TYPE=DEVELOPMENT ;;
+          esac
+          # Build number anchored above upstream's last release (v3.4.4421-alpha).
+          # Counts commits past that anchor so numbers are monotonic on this branch.
+          ANCHOR_TAG=v3.4.4421-alpha
+          if git rev-parse --verify -q "$ANCHOR_TAG" >/dev/null; then
+            COMMITS_PAST=$(git rev-list --count "$ANCHOR_TAG..HEAD")
+          else
+            COMMITS_PAST=$(git rev-list --count HEAD)
+          fi
+          BUILD=$((4421 + COMMITS_PAST))
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "type=$TYPE"   >> "$GITHUB_OUTPUT"
+          echo "version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $MAJOR.$MINOR.$PATCH${SUFFIX:+-$SUFFIX} ($TYPE), build $BUILD"
+
+  build:
+    needs: parse-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            profile: jpackage-linux
+            artifact: strange-eons-linux
+            extra_setup: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+          - os: macos-15-intel
+            profile: jpackage-mac
+            artifact: strange-eons-macos-x64
+            extra_setup: ''
+          - os: macos-15
+            profile: jpackage-mac
+            artifact: strange-eons-macos-aarch64
+            extra_setup: ''
+          - os: windows-latest
+            profile: jpackage-win
+            artifact: strange-eons-windows
+            extra_setup: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Extra setup for runner
+        if: matrix.extra_setup != ''
+        shell: bash
+        run: ${{ matrix.extra_setup }}
+      - name: Build native installers
+        shell: bash
+        run: |
+          mvn -B -DskipTests \
+            -Dapp.major=${{ needs.parse-version.outputs.major }} \
+            -Dapp.minor=${{ needs.parse-version.outputs.minor }} \
+            -Dapp.patch=${{ needs.parse-version.outputs.patch }} \
+            -Dapp.build=${{ needs.parse-version.outputs.build }} \
+            -Dapp.type=${{ needs.parse-version.outputs.type }} \
+            -Pdeploy,${{ matrix.profile }} package
+      - name: Tar Linux app-image into a portable tarball
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          cd deployment/installers
+          if [[ -d "Strange Eons" ]]; then
+            tar czf "strange-eons-${{ needs.parse-version.outputs.version }}-linux.tar.gz" "Strange Eons"
+            rm -rf "Strange Eons"
+          fi
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: deployment/installers/*
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: [parse-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List downloaded artifacts
+        run: find artifacts -type f -printf '%p (%s bytes)\n'
+      - name: Configure SSH for OpalStack
+        run: |
+          mkdir -p ~/.ssh
+          echo "$OPALSTACK_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H opal20.opalstack.com >> ~/.ssh/known_hosts
+        env:
+          OPALSTACK_SSH_KEY: ${{ secrets.OPALSTACK_SSH_KEY }}
+      - name: Resolve channel from release type
+        id: channel
+        shell: bash
+        run: |
+          case "${{ needs.parse-version.outputs.type }}" in
+            GENERAL) echo "channel=stable" >> "$GITHUB_OUTPUT" ;;
+            *)       echo "channel=experimental" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Fetch existing manifest from server
+        # Allow 404 on first deploy; build-deploy-bundle.py treats missing file as empty.
+        run: |
+          curl -fsSL https://strangeeons.fizmo.org/manifest.json -o existing-manifest.json \
+            || echo "{}" > existing-manifest.json
+          echo "Existing manifest:"; cat existing-manifest.json
+      - name: Build deploy bundle
+        run: |
+          python3 .github/workflows/scripts/build-deploy-bundle.py \
+            --artifacts-dir artifacts \
+            --output-dir bundle \
+            --version ${{ needs.parse-version.outputs.version }} \
+            --build   ${{ needs.parse-version.outputs.build }} \
+            --type    ${{ needs.parse-version.outputs.type }} \
+            --channel ${{ steps.channel.outputs.channel }} \
+            --suffix  "${{ needs.parse-version.outputs.suffix }}" \
+            --existing-manifest existing-manifest.json
+      - name: Rsync bundle to OpalStack
+        # No --delete-after: the other channel's installers live on the server
+        # and are referenced from manifest.json + index.html but not present in
+        # this build's bundle. Orphan files from older pre-release suffixes
+        # accumulate slowly; manual server-side cleanup if needed.
+        run: |
+          rsync -avz \
+            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes" \
+            bundle/ \
+            strangeeons@opal20.opalstack.com:~/apps/strangeeons/

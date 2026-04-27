@@ -1,6 +1,7 @@
 ### Deployment temporary files
 deployment/dist
 deployment/assembled
+deployment/installers
 
 ### Maven
 target/
@@ -51,9 +52,9 @@ replay_pid*
 **/nbproject/private/
 **/nbproject/Makefile-*.mk
 **/nbproject/Package-*.bash
-build/
+/build/
 nbbuild/
-dist/
+/dist/
 nbdist/
 .nb-gradle/
 
