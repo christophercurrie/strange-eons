@@ -141,6 +141,7 @@
                                     into the jpackage java-options when packaging.
                                 -->
                                 <argument>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</argument>
+                                <argument>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</argument>
                                 <argument>-javaagent:lib/local/jar-loader/1.0/jar-loader-1.0.jar</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
