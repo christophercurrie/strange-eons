@@ -1,6 +1,7 @@
 ### Deployment temporary files
 deployment/dist
 deployment/assembled
+deployment/installers
 
 ### Maven
 target/

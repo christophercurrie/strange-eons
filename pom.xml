@@ -253,6 +253,169 @@
                 </plugins>
             </build>
         </profile>
+
+        <!--
+            jpackage profiles produce native installers. One profile per OS so
+            that CI can activate exactly one per matrix runner. Each depends on
+            the shaded jar from the deploy profile, so use:
+                mvn package -Pdeploy,jpackage-linux   (on Linux)
+                mvn package -Pdeploy,jpackage-mac     (on macOS)
+                mvn package -Pdeploy,jpackage-win     (on Windows)
+            app.version may be overridden from the command line; default is
+            wired to a placeholder until the git-tag-driven version source lands.
+        -->
+        <profile>
+            <id>jpackage-linux</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.7.4</version>
+                        <configuration>
+                            <name>Strange Eons</name>
+                            <appVersion>${app.version}</appVersion>
+                            <vendor>${app.vendor}</vendor>
+                            <copyright>${app.copyright}</copyright>
+                            <input>${project.basedir}/deployment/assembled</input>
+                            <destination>${project.basedir}/deployment/installers</destination>
+                            <mainJar>strange-eons.jar</mainJar>
+                            <mainClass>ca.cgjennings.apps.arkham.StrangeEons</mainClass>
+                            <icon>${project.basedir}/deployment/assets/icons/app/48.png</icon>
+                            <runtimeImage>${java.home}</runtimeImage>
+                            <javaOptions>
+                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
+                                <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>-Xmx4g</option>
+                                <option>-Xms1g</option>
+                                <option>-Xss1m</option>
+                            </javaOptions>
+                            <linuxPackageName>strange-eons</linuxPackageName>
+                            <linuxAppCategory>Graphics</linuxAppCategory>
+                            <linuxMenuGroup>Graphics</linuxMenuGroup>
+                            <linuxShortcut>true</linuxShortcut>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>jpackage-deb</id>
+                                <phase>package</phase>
+                                <goals><goal>jpackage</goal></goals>
+                                <configuration>
+                                    <type>DEB</type>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jpackage-rpm</id>
+                                <phase>package</phase>
+                                <goals><goal>jpackage</goal></goals>
+                                <configuration>
+                                    <type>RPM</type>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jpackage-app-image</id>
+                                <phase>package</phase>
+                                <goals><goal>jpackage</goal></goals>
+                                <configuration>
+                                    <type>APP_IMAGE</type>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>jpackage-mac</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.7.4</version>
+                        <configuration>
+                            <name>Strange Eons</name>
+                            <appVersion>${app.version}</appVersion>
+                            <vendor>${app.vendor}</vendor>
+                            <copyright>${app.copyright}</copyright>
+                            <input>${project.basedir}/deployment/assembled</input>
+                            <destination>${project.basedir}/deployment/installers</destination>
+                            <mainJar>strange-eons.jar</mainJar>
+                            <mainClass>ca.cgjennings.apps.arkham.StrangeEons</mainClass>
+                            <icon>${project.basedir}/deployment/assets/icons/app/application.icns</icon>
+                            <runtimeImage>${java.home}</runtimeImage>
+                            <javaOptions>
+                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
+                                <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>-Xmx4g</option>
+                                <option>-Xms1g</option>
+                                <option>-Xss1m</option>
+                            </javaOptions>
+                            <macPackageName>Strange Eons</macPackageName>
+                            <macPackageIdentifier>ca.cgjennings.strange-eons</macPackageIdentifier>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>jpackage-dmg</id>
+                                <phase>package</phase>
+                                <goals><goal>jpackage</goal></goals>
+                                <configuration>
+                                    <type>DMG</type>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>jpackage-win</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.7.4</version>
+                        <configuration>
+                            <name>Strange Eons</name>
+                            <appVersion>${app.version}</appVersion>
+                            <vendor>${app.vendor}</vendor>
+                            <copyright>${app.copyright}</copyright>
+                            <input>${project.basedir}/deployment/assembled</input>
+                            <destination>${project.basedir}/deployment/installers</destination>
+                            <mainJar>strange-eons.jar</mainJar>
+                            <mainClass>ca.cgjennings.apps.arkham.StrangeEons</mainClass>
+                            <icon>${project.basedir}/deployment/assets/icons/app/application.ico</icon>
+                            <runtimeImage>${java.home}</runtimeImage>
+                            <javaOptions>
+                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
+                                <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>-Xmx4g</option>
+                                <option>-Xms1g</option>
+                                <option>-Xss1m</option>
+                            </javaOptions>
+                            <winShortcut>true</winShortcut>
+                            <winMenu>true</winMenu>
+                            <winMenuGroup>Strange Eons</winMenuGroup>
+                            <winDirChooser>true</winDirChooser>
+                            <winUpgradeUuid>9f5b1c30-0d2e-4f7a-8e1b-3a4d6b8e9c10</winUpgradeUuid>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>jpackage-msi</id>
+                                <phase>package</phase>
+                                <goals><goal>jpackage</goal></goals>
+                                <configuration>
+                                    <type>MSI</type>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -285,5 +448,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
         <exec.mainClass>ca.cgjennings.apps.arkham.StrangeEons</exec.mainClass>
+        <app.version>3.5.0</app.version>
+        <app.vendor>Christopher Currie</app.vendor>
+        <app.copyright>Copyright Christopher Jennings and contributors</app.copyright>
     </properties>
 </project>
