@@ -441,6 +441,39 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <!--
+                        Filter the rev template into the compiled-classes output
+                        so StrangeEons.<clinit> finds it via getResourceAsStream.
+                        Defaults below produce a DEVELOPMENT/99999 build for
+                        local checkouts. Release workflows override the app.*
+                        properties from the matching git tag.
+                    -->
+                    <execution>
+                        <id>generate-rev-file</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/ca/cgjennings/apps/arkham</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/build/templates</directory>
+                                    <includes>
+                                        <include>rev</include>
+                                    </includes>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -448,7 +481,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
         <exec.mainClass>ca.cgjennings.apps.arkham.StrangeEons</exec.mainClass>
-        <app.version>3.5.0</app.version>
+        <!--
+            app.* properties are the source of truth for application version
+            metadata. Defaults match StrangeEons.INTERNAL_BUILD_NUMBER and the
+            dev fallback in the rev parser. Release builds override these from
+            the git tag (e.g., v3.5.0-alpha -> major=3 minor=5 patch=0
+            build=<workflow-derived> type=ALPHA).
+        -->
+        <app.major>3</app.major>
+        <app.minor>5</app.minor>
+        <app.patch>0</app.patch>
+        <app.build>99999</app.build>
+        <app.type>DEVELOPMENT</app.type>
+        <app.version>${app.major}.${app.minor}.${app.patch}</app.version>
         <app.vendor>Christopher Currie</app.vendor>
         <app.copyright>Copyright Christopher Jennings and contributors</app.copyright>
     </properties>

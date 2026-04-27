@@ -1,0 +1,5 @@
+${app.build}
+${app.major}
+${app.minor}
+${app.patch}
+${app.type}
