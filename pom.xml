@@ -481,11 +481,35 @@
     <build>
         <plugins>
             <plugin>
+                <!--
+                    Exposes each dependency's resolved file path as a Maven
+                    property (e.g. ${org.mockito:mockito-core:jar}) so
+                    surefire can preload Mockito's own jar as a JVM agent
+                    via -javaagent. Loading the agent statically avoids the
+                    JVM warning about dynamic agent attachment, which JEP 451
+                    will eventually disallow by default.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>resolve-test-deps</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                    <!-- -Xshare:off explicitly disables CDS so the JVM doesn't
+                         warn that the agent's append to the bootstrap classpath
+                         has voided sharing. -->
+                    <argLine>-Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
                 </configuration>
             </plugin>
             <plugin>
