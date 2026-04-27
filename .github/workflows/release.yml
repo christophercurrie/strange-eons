@@ -119,6 +119,15 @@ jobs:
             -Dapp.build=${{ needs.parse-version.outputs.build }} \
             -Dapp.type=${{ needs.parse-version.outputs.type }} \
             -Pdeploy,${{ matrix.profile }} package
+      - name: Tar Linux app-image into a portable tarball
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          cd deployment/installers
+          if [[ -d "Strange Eons" ]]; then
+            tar czf "strange-eons-${{ needs.parse-version.outputs.version }}-linux.tar.gz" "Strange Eons"
+            rm -rf "Strange Eons"
+          fi
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
@@ -127,9 +136,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Deploy step is scaffolded; the catalog/index generator script and the
-  # final rsync command are added under task #34. Until then, this job just
-  # collects the artifacts in one place so we can verify the matrix end-to-end.
   deploy:
     needs: [parse-version, build]
     runs-on: ubuntu-latest
@@ -144,10 +150,31 @@ jobs:
       - name: Configure SSH for OpalStack
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.OPALSTACK_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "$OPALSTACK_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H opal20.opalstack.com >> ~/.ssh/known_hosts
         env:
           OPALSTACK_SSH_KEY: ${{ secrets.OPALSTACK_SSH_KEY }}
-      - name: Generate catalog and downloads index
-        run: echo "TODO (task #34): generate updates/catalog.txt and index.html, then rsync to ~/apps/strangeeons/"
+      - name: Resolve channel from release type
+        id: channel
+        shell: bash
+        run: |
+          case "${{ needs.parse-version.outputs.type }}" in
+            GENERAL) echo "channel=stable" >> "$GITHUB_OUTPUT" ;;
+            *)       echo "channel=experimental" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Build deploy bundle
+        run: |
+          python3 .github/workflows/scripts/build-deploy-bundle.py \
+            --artifacts-dir artifacts \
+            --output-dir bundle \
+            --version ${{ needs.parse-version.outputs.version }} \
+            --build   ${{ needs.parse-version.outputs.build }} \
+            --type    ${{ needs.parse-version.outputs.type }} \
+            --channel ${{ steps.channel.outputs.channel }}
+      - name: Rsync bundle to OpalStack
+        run: |
+          rsync -avz --delete-after \
+            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes" \
+            bundle/ \
+            strangeeons@opal20.opalstack.com:~/apps/strangeeons/
