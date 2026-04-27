@@ -945,7 +945,7 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
         if (desktop != null) {
             desktop.remove(this);
         }
-        AppFrame.getApp().removePropertyChangeListener(StrangeEonsAppWindow.VIEW_QUALITY_PROPERTY, pcl);
+        AppFrame.getApp().removePropertyChangeListener(StrangeEonsAppWindow.VIEW_BACKDROP_PROPERTY, pcl);
 
         // there seems to be a JInternalFrame memory leak happening in some cases
         // this should reduce the damage
