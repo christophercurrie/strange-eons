@@ -50,13 +50,15 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          TYPE="${BASH_REMATCH[5]:-general}"
-          # normalize type: alpha/beta/development pass through; anything else -> GENERAL
+          TYPE="${BASH_REMATCH[5]}"
+          # Bare version (no -suffix) is the only thing routed to the stable
+          # channel; any pre-release suffix (alpha/beta/test/rc/etc.) maps to
+          # an experimental release type.
           case "${TYPE,,}" in
+            "")     TYPE=GENERAL ;;
             alpha*) TYPE=ALPHA ;;
             beta*)  TYPE=BETA ;;
-            dev*)   TYPE=DEVELOPMENT ;;
-            *)      TYPE=GENERAL ;;
+            *)      TYPE=DEVELOPMENT ;;
           esac
           # Build number anchored above upstream's last release (v3.4.4421-alpha).
           # Counts commits past that anchor so numbers are monotonic on this branch.
