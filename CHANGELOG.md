@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-04-28
+
+- Removed wait-cursor toggles around the synchronous render path in
+  `Sheet.paint` and around the heartbeat-driven re-render in
+  `AbstractGameComponentEditor.onHeartbeat`. The toggles flashed a brief
+  spinner during normal editing (every heartbeat tick after a content
+  change) and during tab-reselect after the issue #6 raster release;
+  they were previously masked when the open path's outer wait cursor
+  was active, so the flash was only visible during in-editor activity.
+  The renders themselves still happen on the EDT — see issue #9 for
+  the proper background-thread treatment.
+- Bumped the issue #6 raster-release grace timer from 1500 ms to 60 s.
+  1.5 s was aggressive enough that switching between tabs in a typical
+  multi-card workflow forced a full re-render on every reselect; 60 s
+  preserves the memory savings for genuinely inactive editors while
+  keeping normal tab-switching instant.
+
 ## 2026-04-27
 
 - Released sheet rasters for inactive game-component editors to cut

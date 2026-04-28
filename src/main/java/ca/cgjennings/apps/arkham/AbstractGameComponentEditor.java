@@ -98,7 +98,7 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
     // a deselect quickly followed by a reselect skips the free/re-render
     // cycle. See issue #6 — under typical multi-editor load these rasters
     // account for ~99% of long-lived int[] retention on the heap.
-    private static final int RASTER_RELEASE_DELAY_MS = 1500;
+    private static final int RASTER_RELEASE_DELAY_MS = 60_000;
     private boolean sheetsCached = true;
     private final Timer rasterReleaseTimer;
     // The listener is registered against the AppFrame (rather than this editor)
@@ -806,29 +806,24 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
 
         if (!changed && updatePending) {
             updatePending = false;
-            StrangeEons.setWaitCursor(true);
-            try {
-                // UNDO:
+            // UNDO:
 //							GameComponent next = (GameComponent) getGameComponent().clone();
 //							StrangeEons.getWindow().registerUndoable( AbstractGameComponentEditor.this, previousComponentState, next );
 //							previousComponentState = next;
 
-                // update the design support first, in case one of the
-                // sheets calls isDesignValid() while painting
-                if (designSupport != null) {
-                    designSupport.markChanged();
-                    designSupport.updateSupportView(designSupportView);
-                }
+            // update the design support first, in case one of the
+            // sheets calls isDesignValid() while painting
+            if (designSupport != null) {
+                designSupport.markChanged();
+                designSupport.updateSupportView(designSupportView);
+            }
 
-                // update the sheet viewers with new component renders
-                // any sheets that have not been marked changed will re-use old image
-                if (viewers != null) {
-                    for (SheetViewer v : viewers) {
-                        v.rerenderImage();
-                    }
+            // update the sheet viewers with new component renders
+            // any sheets that have not been marked changed will re-use old image
+            if (viewers != null) {
+                for (SheetViewer v : viewers) {
+                    v.rerenderImage();
                 }
-            } finally {
-                StrangeEons.setWaitCursor(false);
             }
         }
 

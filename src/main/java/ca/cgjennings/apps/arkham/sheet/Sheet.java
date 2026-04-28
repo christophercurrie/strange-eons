@@ -389,7 +389,6 @@ public abstract class Sheet<G extends GameComponent> {
 
             // content marked changed or target/resolution is different
             if (changeFlag || dirtyCacheHint) {
-                StrangeEons.setWaitCursor(true);
                 finishedImage = null;
                 try {
                     if (logPainting) {
@@ -426,7 +425,6 @@ public abstract class Sheet<G extends GameComponent> {
                     StrangeEons.log.log(Level.SEVERE, "uncaught exception while painting sheet " + this, ex);
                 } finally {
                     changeFlag = false;
-                    StrangeEons.setWaitCursor(false);
                 }
             }
 
