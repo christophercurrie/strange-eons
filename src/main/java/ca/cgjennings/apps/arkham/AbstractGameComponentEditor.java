@@ -55,6 +55,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.Timer;
 import javax.swing.text.JTextComponent;
 import resources.Language;
 import static resources.Language.string;
@@ -78,6 +79,9 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
      */
     public AbstractGameComponentEditor() {
         AppFrame.getApp().addPropertyChangeListener(StrangeEonsAppWindow.VIEW_BACKDROP_PROPERTY, pcl);
+        rasterReleaseTimer = new Timer(RASTER_RELEASE_DELAY_MS, e -> releaseSheetRasters());
+        rasterReleaseTimer.setRepeats(false);
+        AppFrame.getApp().addEditorListener(rasterReleaseListener);
     }
 
     private final PropertyChangeListener pcl = new PropertyChangeListener() {
@@ -88,6 +92,70 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
             }
         }
     };
+
+    // Release sheet rasters (BufferedImage int[] backing buffers) when the
+    // editor is not visible. The grace timer absorbs rapid tab-switching:
+    // a deselect quickly followed by a reselect skips the free/re-render
+    // cycle. See issue #6 — under typical multi-editor load these rasters
+    // account for ~99% of long-lived int[] retention on the heap.
+    private static final int RASTER_RELEASE_DELAY_MS = 1500;
+    private boolean sheetsCached = true;
+    private final Timer rasterReleaseTimer;
+    // The listener is registered against the AppFrame (rather than this editor)
+    // because the per-editor JComponent.listenerList machinery does not deliver
+    // EditorListener events reliably under JInternalFrame; the AppFrame-level
+    // listener bus does. The body filters by reference identity to ignore
+    // events for sibling editors.
+    private final StrangeEonsEditor.EditorListener rasterReleaseListener = new StrangeEonsEditor.EditorListener() {
+        @Override
+        public void editorSelected(StrangeEonsEditor editor) {
+            if (editor != AbstractGameComponentEditor.this) return;
+            rasterReleaseTimer.stop();
+            if (!sheetsCached) {
+                sheetsCached = true;
+                redrawPreview();
+            }
+        }
+
+        @Override
+        public void editorDeselected(StrangeEonsEditor editor) {
+            if (editor != AbstractGameComponentEditor.this) return;
+            rasterReleaseTimer.restart();
+        }
+
+        @Override
+        public void editorClosing(StrangeEonsEditor editor) {
+        }
+
+        @Override
+        public void editorDetached(StrangeEonsEditor editor) {
+            if (editor != AbstractGameComponentEditor.this) return;
+            // a detached editor is still showing its sheets in its own window
+            rasterReleaseTimer.stop();
+        }
+
+        @Override
+        public void editorAttached(StrangeEonsEditor editor) {
+        }
+    };
+
+    private void releaseSheetRasters() {
+        if (sheets != null) {
+            for (Sheet<G> s : sheets) {
+                if (s != null) {
+                    s.freeCachedResources();
+                }
+            }
+            sheetsCached = false;
+        }
+        if (viewers != null) {
+            for (SheetViewer v : viewers) {
+                if (v != null) {
+                    v.releaseCachedImage();
+                }
+            }
+        }
+    }
 
     /**
      * Make any special changes needed to localize this editor for the host
@@ -946,6 +1014,10 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
             desktop.remove(this);
         }
         AppFrame.getApp().removePropertyChangeListener(StrangeEonsAppWindow.VIEW_BACKDROP_PROPERTY, pcl);
+
+        rasterReleaseTimer.stop();
+        AppFrame.getApp().removeEditorListener(rasterReleaseListener);
+        releaseSheetRasters();
 
         // there seems to be a JInternalFrame memory leak happening in some cases
         // this should reduce the damage

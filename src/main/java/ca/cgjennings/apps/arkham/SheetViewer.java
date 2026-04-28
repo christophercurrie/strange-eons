@@ -211,6 +211,16 @@ public class SheetViewer extends AbstractViewer {
 
     private BufferedImage lastImage;
 
+    /**
+     * Releases the cached rendered image. Pairs with
+     * {@link Sheet#freeCachedResources()} to fully release viewer-side
+     * BufferedImage rasters when the editor is not visible. The next
+     * paint will re-render lazily.
+     */
+    void releaseCachedImage() {
+        lastImage = null;
+    }
+
     @Override
     protected void paintComponent(Graphics g1) {
         try {

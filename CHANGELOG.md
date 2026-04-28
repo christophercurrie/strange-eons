@@ -2,6 +2,25 @@
 
 ## 2026-04-27
 
+- Released sheet rasters for inactive game-component editors to cut
+  working-set memory. With many editors open, `BufferedImage` pixel
+  buffers held by background editors' sheets dominated heap retention
+  (per profiling on `chore/memory-profiling`: ~1 GB of `int[]`,
+  ~99% traceable to live Sheet buffers via JFR `OldObjectSample`).
+  `AbstractGameComponentEditor` now registers an `EditorListener` that,
+  on editor deselect, schedules a 1500 ms grace timer; if the editor
+  remains inactive past the grace window the timer calls
+  `Sheet.freeCachedResources()` on each sheet and a new
+  `SheetViewer.releaseCachedImage()` on each viewer (which nulls the
+  viewer's `lastImage` cache that was independently retaining the
+  rendered output). On reselect the timer is cancelled and
+  `redrawPreview()` re-renders lazily on next paint. The grace timer
+  absorbs rapid tab-switching. Verified delta on a 225-component
+  project with ~10 editors open: `int[]` dropped from 931 MB to 252 MB
+  (-680 MB), heap used 1920 MB → 906 MB (-1 GB), 35,849 → 24,961
+  instances. The listener is registered against `AppFrame` rather than
+  `this` because per-editor `JComponent.listenerList` does not
+  reliably deliver `EditorListener` events under `JInternalFrame`.
 - Fixed a macOS bug where Cmd-key menu accelerators (Cmd+S, Cmd+V,
   Cmd+Shift+S, etc.) silently did nothing unless the corresponding menu
   was being actively tracked. With `apple.laf.useScreenMenuBar=true`,
