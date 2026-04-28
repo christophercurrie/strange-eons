@@ -108,6 +108,22 @@ final class AppFrame extends StrangeEonsAppWindow {
                             AbstractCommand command = (AbstractCommand) match.getAction();
                             command.update();
                         }
+                        // macOS screen-menu-bar workaround: with
+                        // apple.laf.useScreenMenuBar=true, Cocoa's native
+                        // key-equivalent dispatch silently drops Cmd accelerators
+                        // for non-Aqua menu UIs (FlatLaf), so we never see the
+                        // action fire even though the keystroke reached Java.
+                        // Fire the matched menu item ourselves and consume the
+                        // event. JMenuBar.isSelected() can't gate this — the
+                        // Apple ScreenMenuBar bridge reports it as permanently
+                        // selected after the first menu interaction.
+                        if (PlatformSupport.PLATFORM_IS_MAC
+                                && e.getID() == KeyEvent.KEY_PRESSED
+                                && match.isEnabled()) {
+                            match.doClick(0);
+                            e.consume();
+                            return true;
+                        }
                     }
                 }
                 return false;

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-04-27
+
+- Fixed a macOS bug where Cmd-key menu accelerators (Cmd+S, Cmd+V,
+  Cmd+Shift+S, etc.) silently did nothing unless the corresponding menu
+  was being actively tracked. With `apple.laf.useScreenMenuBar=true`,
+  Cocoa's native key-equivalent dispatch silently drops accelerators for
+  non-Aqua menu UIs (FlatLaf), so the JMenuItem's Action never fires
+  even though the keystroke does reach Java's
+  `KeyboardFocusManager`. The existing keystroke dispatcher in `AppFrame`
+  already finds the matching `JMenuItem` (to refresh its enabled state
+  before the accelerator is processed), so it now also calls
+  `match.doClick(0)` and consumes the event — but only on macOS and only
+  when the matched item is enabled. `JMenuBar.isSelected()` cannot gate
+  this on Mac because the Apple `ScreenMenuBar` bridge reports the bar
+  as permanently selected after the first menu interaction.
+
 ## 2026-04-26
 
 - Fixed a memory leak in `AbstractGameComponentEditor`: the `pcl`
