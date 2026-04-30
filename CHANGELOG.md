@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-04-29
+
+- Cut over the default update catalog URL from `strangeeons.fizmo.org`
+  to `strangeeons.org` (`default.settings` `catalog-url-1`, plus the
+  in-app download URI in `UpdateMessage.getDownloadURI`). The catalog
+  is now driven by the new
+  [`strange-eons-registry`](https://github.com/christophercurrie/strange-eons-registry)
+  repo, which fetches plugin bundles hourly and rehosts them on
+  OpalStack alongside `manifest.json`, `updates/catalog.txt`, and the
+  downloads index. Existing alpha installs continue to work via a 301
+  redirect from `strangeeons.fizmo.org` to `strangeeons.org` running
+  on the OpalStack side; that redirect is invisible to the in-app
+  catalog fetcher.
+
 ## 2026-04-28
 
 - Removed wait-cursor toggles around the synchronous render path in
