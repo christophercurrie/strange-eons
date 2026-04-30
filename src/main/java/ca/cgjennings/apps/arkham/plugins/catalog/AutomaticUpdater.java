@@ -518,8 +518,8 @@ public class AutomaticUpdater {
     }
 
     // Fork-channel app-update IDs. Distinct from upstream's so that fork
-    // releases on the fizmo.org catalog do not collide with any future
-    // upstream releases. Once published these values must never change.
+    // releases do not collide with any future upstream releases. Once
+    // published these values must never change.
     private static final UUID APP_STABLE = UUID.fromString("c8d1620e-5eeb-47f4-9ef2-49e9947faa90");
     private static final UUID APP_EXPERIMENTAL = UUID.fromString("1b7ef4bd-f63a-4884-9979-830d4feb18b8");
 }

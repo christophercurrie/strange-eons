@@ -37,7 +37,7 @@ and more.
 ## Getting started
 
 Typical users can download and install Strange Eons from the
-[Strange Eons download page](https://strangeeons.fizmo.org/).
+[Strange Eons download page](https://strangeeons.org/).
 A [user manual and other documentation](https://se3docs.cgjennings.ca/index.html)
 remain hosted on the original project's site if you would like help
 getting started.
