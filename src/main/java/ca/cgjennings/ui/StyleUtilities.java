@@ -7,7 +7,6 @@ import java.awt.Frame;
 import java.awt.GraphicsDevice;
 import java.awt.IllegalComponentStateException;
 import java.awt.Window;
-import java.lang.reflect.Method;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 
@@ -73,10 +72,9 @@ public class StyleUtilities {
     }
 
     /**
-     * Returns the opacity of the window. This method can use either the JDK7 or
-     * JDK6u10 APIs for window opacity. If neither is available or opacity
-     * changes have been disabled, the method returns 1 (i.e., it assumes that
-     * the window is fully opaque).
+     * Returns the opacity of the window. If opacity changes have been
+     * disabled, the method returns 1 (i.e., it assumes that the window is
+     * fully opaque).
      *
      * @param window the window to obtain the opacity of
      * @throws NullPointerException if {@code window} is {@code null}
@@ -85,44 +83,12 @@ public class StyleUtilities {
         if (window == null) {
             throw new NullPointerException("window");
         }
-        if (enableOpacity) {
-            if (getOpacityMethod == -1) {
-                getOpacityMethod = 0;
-                try {
-                    getWindowOpacity = Class.forName("com.sun.awt.AWTUtilities")
-                            .getMethod("getWindowOpacity", Window.class);
-                    getOpacityMethod = 2;
-                } catch (Exception e) {
-                    try {
-                        getWindowOpacity = java.awt.Window.class.getMethod("getOpacity");
-                        getOpacityMethod = 1;
-                    } catch (Exception ie) {
-                    }
-                }
-            }
-
-            // if an API is known, try calling it to set the opacity
-            try {
-                if (getOpacityMethod == 1) {
-                    return (Float) getWindowOpacity.invoke(window);
-                } else if (getOpacityMethod == 2) {
-                    return (Float) getWindowOpacity.invoke(null, window);
-                }
-            } catch (Exception e) {
-                // weird! this shouldn't happen, but just in case...
-                getOpacityMethod = 0;
-            }
-        }
-        return 1f;
+        return enableOpacity ? window.getOpacity() : 1f;
     }
-    private static Method getWindowOpacity = null;
-    private static int getOpacityMethod = -1; // -1 = unknown; 0 = none;  1 = JDK7; 2 = JDK6
 
     /**
-     * Sets the translucency of a window if possible. This method can use either
-     * the JDK7 or JDK6u10 APIs for setting window opacity. If neither is
-     * available, or if window translucency is unsupported or has been disabled,
-     * then this method has no effect.
+     * Sets the translucency of a window if possible. If window translucency
+     * is unsupported or has been disabled, then this method has no effect.
      *
      * @param window the window to change the opacity of
      * @param alpha the new opacity value in the range [0..1]
