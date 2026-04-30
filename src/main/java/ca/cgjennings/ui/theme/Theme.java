@@ -213,23 +213,38 @@ public abstract class Theme {
     public abstract void modifyManagerDefaults(UIDefaults defaults);
 
     /**
-     * This method is called after the look and feel has been instantiated but
-     * before it has been installed and allows you to modify the look and feel's
-     * default properties.
+     * This method is called to give the theme a chance to modify the look and
+     * feel's default properties. For most themes (those whose LaF class lives
+     * outside a JDK platform module) this is called <em>before</em> the LaF is
+     * installed and {@code defaults} is the LaF instance's own defaults table.
+     *
+     * <p>
+     * As an exception, when {@link #getLookAndFeelClassName()} returns a class
+     * that lives in a JDK module (e.g.
+     * {@code com.apple.laf.AquaLookAndFeel}), the LaF is installed via
+     * {@code UIManager.setLookAndFeel(String)} so that no module carve-out is
+     * required. In that case this method is called <em>after</em> the LaF is
+     * installed and {@code defaults} is
+     * {@link UIManager#getLookAndFeelDefaults()}; puts there take precedence
+     * over the underlying LaF defaults at component-render time, so visible
+     * behaviour is the same for the typical color/border/icon overrides.
      *
      * @param defaults the Look and Feel UI defaults
      */
     public abstract void modifyLookAndFeelDefaults(UIDefaults defaults);
 
     /**
-     * This method is called just before the look and feel is installed and just
-     * after {@link #modifyLookAndFeelDefaults}. It allows you to make any final
-     * changes to the look and feel before it is installed.
+     * This method is called just after {@link #modifyLookAndFeelDefaults} to
+     * let the theme make final changes to the look and feel. For most themes
+     * this runs before the LaF is installed; see
+     * {@link #modifyLookAndFeelDefaults} for the JDK-module exception, where
+     * it runs after the LaF is installed and
+     * {@link LookAndFeel#initialize() initialized}.
      *
      * <p>
      * The base class implementation does nothing.
      *
-     * @param laf the look and feel to be installed
+     * @param laf the look and feel
      */
     public void modifyLookAndFeel(LookAndFeel laf) {
     }
