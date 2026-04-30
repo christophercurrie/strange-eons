@@ -3,6 +3,11 @@ name: Release
 # Triggered by pushing a tag matching v<major>.<minor>.<patch>[-<type>]
 # (e.g., v3.5.0, v3.5.0-alpha, v3.5.0-beta1). workflow_dispatch lets us
 # rehearse the workflow without cutting a real tag.
+#
+# This workflow only builds installers and publishes them as GitHub Release
+# assets. The strange-eons-registry repo's hourly build-catalog workflow
+# (https://github.com/christophercurrie/strange-eons-registry) picks up the
+# release and rehosts it on strangeeons.org.
 
 on:
   push:
@@ -16,7 +21,7 @@ on:
         default: '3.5.0-test1'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   parse-version:
@@ -29,6 +34,7 @@ jobs:
       type: ${{ steps.parse.outputs.type }}
       version: ${{ steps.parse.outputs.version }}
       suffix: ${{ steps.parse.outputs.suffix }}
+      tag: ${{ steps.parse.outputs.tag }}
     steps:
       - name: Checkout (with full history for rev-list)
         uses: actions/checkout@v4
@@ -71,6 +77,7 @@ jobs:
             COMMITS_PAST=$(git rev-list --count HEAD)
           fi
           BUILD=$((4421 + COMMITS_PAST))
+          TAG="v$MAJOR.$MINOR.$PATCH${SUFFIX:+-$SUFFIX}"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
           echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
@@ -78,6 +85,7 @@ jobs:
           echo "type=$TYPE"   >> "$GITHUB_OUTPUT"
           echo "version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
           echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
           echo "Resolved version: $MAJOR.$MINOR.$PATCH${SUFFIX:+-$SUFFIX} ($TYPE), build $BUILD"
 
   build:
@@ -137,7 +145,7 @@ jobs:
         run: |
           cd deployment/installers
           if [[ -d "Strange Eons" ]]; then
-            tar czf "strange-eons-${{ needs.parse-version.outputs.version }}-linux.tar.gz" "Strange Eons"
+            tar czf "strange-eons-linux.tar.gz" "Strange Eons"
             rm -rf "Strange Eons"
           fi
       - name: Upload installers
@@ -148,57 +156,75 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  deploy:
+  release:
     needs: [parse-version, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Download all installer artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: List downloaded artifacts
-        run: find artifacts -type f -printf '%p (%s bytes)\n'
-      - name: Configure SSH for OpalStack
-        run: |
-          mkdir -p ~/.ssh
-          echo "$OPALSTACK_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H opal20.opalstack.com >> ~/.ssh/known_hosts
+      - name: Rename to canonical asset names
+        # The registry's asset_globs match these exact suffixes. Stable
+        # releases get a bare version; pre-releases carry the tag suffix
+        # (e.g. -alpha2) so multiple in-flight pre-releases coexist.
+        shell: bash
         env:
-          OPALSTACK_SSH_KEY: ${{ secrets.OPALSTACK_SSH_KEY }}
-      - name: Resolve channel from release type
-        id: channel
+          VER: ${{ needs.parse-version.outputs.version }}
+          SUFFIX: ${{ needs.parse-version.outputs.suffix }}
+        run: |
+          set -euo pipefail
+          DS=""
+          [[ -n "$SUFFIX" ]] && DS="-$SUFFIX"
+          mkdir -p release-assets
+          rename_one() {
+            local src_dir="$1" pattern="$2" dest_name="$3"
+            local found
+            found="$(find "artifacts/$src_dir" -type f -name "$pattern" -print -quit 2>/dev/null || true)"
+            if [[ -z "$found" ]]; then
+              echo "::warning::no $pattern under artifacts/$src_dir"
+              return
+            fi
+            mv "$found" "release-assets/$dest_name"
+            echo "  $dest_name <- $found"
+          }
+          rename_one strange-eons-macos-aarch64 "*.dmg"           "strange-eons-${VER}${DS}-macos-aarch64.dmg"
+          rename_one strange-eons-macos-x64     "*.dmg"           "strange-eons-${VER}${DS}-macos-x64.dmg"
+          rename_one strange-eons-windows       "*.msi"           "strange-eons-${VER}${DS}-windows.msi"
+          rename_one strange-eons-linux         "*.deb"           "strange-eons-${VER}${DS}.deb"
+          rename_one strange-eons-linux         "*.rpm"           "strange-eons-${VER}${DS}.rpm"
+          rename_one strange-eons-linux         "strange-eons-linux.tar.gz" "strange-eons-${VER}${DS}-linux.tar.gz"
+          echo
+          echo "Release assets:"
+          ls -la release-assets
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.parse-version.outputs.tag }}
+          SUFFIX: ${{ needs.parse-version.outputs.suffix }}
+          VER: ${{ needs.parse-version.outputs.version }}
+          BUILD: ${{ needs.parse-version.outputs.build }}
+          TYPE: ${{ needs.parse-version.outputs.type }}
         shell: bash
         run: |
-          case "${{ needs.parse-version.outputs.type }}" in
-            GENERAL) echo "channel=stable" >> "$GITHUB_OUTPUT" ;;
-            *)       echo "channel=experimental" >> "$GITHUB_OUTPUT" ;;
-          esac
-      - name: Fetch existing manifest from server
-        # Allow 404 on first deploy; build-deploy-bundle.py treats missing file as empty.
-        run: |
-          curl -fsSL https://strangeeons.fizmo.org/manifest.json -o existing-manifest.json \
-            || echo "{}" > existing-manifest.json
-          echo "Existing manifest:"; cat existing-manifest.json
-      - name: Build deploy bundle
-        run: |
-          python3 .github/workflows/scripts/build_deploy_bundle.py \
-            --artifacts-dir artifacts \
-            --output-dir bundle \
-            --version ${{ needs.parse-version.outputs.version }} \
-            --build   ${{ needs.parse-version.outputs.build }} \
-            --type    ${{ needs.parse-version.outputs.type }} \
-            --channel ${{ steps.channel.outputs.channel }} \
-            --suffix  "${{ needs.parse-version.outputs.suffix }}" \
-            --existing-manifest existing-manifest.json
-      - name: Rsync bundle to OpalStack
-        # No --delete-after: the other channel's installers live on the server
-        # and are referenced from manifest.json + index.html but not present in
-        # this build's bundle. Orphan files from older pre-release suffixes
-        # accumulate slowly; manual server-side cleanup if needed.
-        run: |
-          rsync -avz \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes" \
-            bundle/ \
-            strangeeons@opal20.opalstack.com:~/apps/strangeeons/
+          set -euo pipefail
+          PRERELEASE_FLAG=""
+          [[ -n "$SUFFIX" ]] && PRERELEASE_FLAG="--prerelease"
+          TITLE="Strange Eons ${VER}${SUFFIX:+-$SUFFIX} (build ${BUILD})"
+          # `--target` only takes effect when the tag doesn't already exist;
+          # for tag-push triggers the tag is already at the commit we want.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading assets only."
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "${GITHUB_SHA}" \
+              --title "$TITLE" \
+              --generate-notes \
+              $PRERELEASE_FLAG \
+              release-assets/*
+          fi
+          echo
+          echo "Release URL:"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url
