@@ -117,7 +117,7 @@ public class ImagePreviewer extends JPanel {
             try {
                 temp = createPreviewImage(f);
             } catch (Throwable t) {
-                StrangeEons.log.log(Level.INFO, "previewer could not load image: " + f, t);
+                StrangeEons.log.log(Level.FINE, "previewer could not load image: " + f, t);
             }
             if (temp != null && !Thread.interrupted()) {
                 final BufferedImage tn = temp;
