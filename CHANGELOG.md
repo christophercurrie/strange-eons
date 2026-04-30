@@ -26,6 +26,17 @@
   the original direct-reflection path and pre-install hook ordering.
   `Theme.modifyLookAndFeelDefaults` / `modifyLookAndFeel` Javadoc was
   updated to describe the per-path timing.
+- Friendlier failure when an `.eon` file is corrupt or truncated
+  (issue #5, alpha-tester report). `ResourceKit.getGameComponentFromStream`
+  now catches `EOFException` / `OptionalDataException` separately from
+  the generic `Exception` bucket and surfaces a localized
+  "the file appears to be corrupt or incomplete" dialog (new
+  `app-err-corrupt` resource key) instead of a raw Java stack trace.
+  Stack trace stays in the log at INFO. Existing magic-bytes and
+  generic-error paths are unchanged. Also lowered
+  `ImagePreviewer.LoaderThread`'s catch-all from INFO to FINE so
+  best-effort thumbnail-preview failures don't pollute the default
+  log.
 
 ## 2026-04-29
 
