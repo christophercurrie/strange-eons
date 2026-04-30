@@ -37,6 +37,13 @@
   `ImagePreviewer.LoaderThread`'s catch-all from INFO to FINE so
   best-effort thumbnail-preview failures don't pollute the default
   log.
+- Scoped the CI workflow's `push` trigger to `main`. Pushes to feature
+  branches no longer fire CI; the PR run is now the single source of
+  truth. Previously the unscoped `push` trigger ran on every branch and
+  the subsequent `pull_request` trigger duplicated the work, with the
+  branch run briefly showing "all checks passed" before the PR run had
+  started. Manual `workflow_dispatch` and tag-driven release/sync flows
+  unchanged.
 
 ## 2026-04-29
 
