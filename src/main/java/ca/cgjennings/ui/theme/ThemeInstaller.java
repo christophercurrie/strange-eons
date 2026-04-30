@@ -200,22 +200,38 @@ public class ThemeInstaller {
     private static void installImpl(Theme theme) throws Exception {
         installStrangeEonsUIDefaults(theme);
         theme.modifyManagerDefaults(UIManager.getDefaults());
-        
-        // create laf
+
         LookAndFeel laf;
-        if (theme.getLookAndFeelClassName() != null) {
-            laf = (LookAndFeel) Class.forName(theme.getLookAndFeelClassName()).getConstructor().newInstance();
+        String lafClassName = theme.getLookAndFeelClassName();
+        if (lafClassName != null) {
+            Class<?> lafClass = Class.forName(lafClassName);
+            if (lafClass.getModule().isNamed()) {
+                // LaF lives in a JDK module (e.g. com.apple.laf.AquaLookAndFeel
+                // in java.desktop for the system-L&F TchoTchoTheme on macOS).
+                // Route through UIManager so the instantiation happens with
+                // java.desktop's own module privileges, avoiding an --add-opens
+                // carve-out. Trade-off: the theme's modifyLookAndFeelDefaults
+                // / modifyLookAndFeel hooks run after the L&F is installed.
+                UIManager.setLookAndFeel(lafClassName);
+                laf = UIManager.getLookAndFeel();
+                theme.modifyLookAndFeelDefaults(UIManager.getLookAndFeelDefaults());
+                theme.modifyLookAndFeel(laf);
+            } else {
+                // LaF is in our unnamed module (e.g. StrangeNimbus). Direct
+                // reflection in-module works and preserves the pre-install
+                // ordering of the hooks.
+                laf = (LookAndFeel) lafClass.getConstructor().newInstance();
+                theme.modifyLookAndFeelDefaults(laf.getDefaults());
+                theme.modifyLookAndFeel(laf);
+                UIManager.setLookAndFeel(laf);
+            }
         } else {
             laf = Objects.requireNonNull(theme.createLookAndFeelInstance(), "theme returned null look and feel instance");
+            theme.modifyLookAndFeelDefaults(laf.getDefaults());
+            theme.modifyLookAndFeel(laf);
+            UIManager.setLookAndFeel(laf);
         }
 
-        UIDefaults lafDefs = laf.getDefaults();
-
-        // put in the theme's L&F defaults
-        theme.modifyLookAndFeelDefaults(lafDefs);
-
-        theme.modifyLookAndFeel(laf);
-        UIManager.setLookAndFeel(laf);
         installStrangeEonsUIFallbackDefaults(theme);
         theme.themeInstalled();
 

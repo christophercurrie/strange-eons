@@ -155,12 +155,10 @@
                                 <argument>-Xms1g</argument>
                                 <argument>-Xss1m</argument>
                                 <!--
-                                    Restore reflective access to the Aqua L&F so OSXHelper
-                                    can copy menu UI delegates onto Flatlaf. Java 17+ enforces
-                                    strong module encapsulation by default. Mirror this list
-                                    into the jpackage java-options when packaging.
+                                    Java 17+ enforces strong module encapsulation by default;
+                                    a few helpers still reach into javax.swing.table internals.
+                                    Mirror this list into the jpackage java-options when packaging.
                                 -->
-                                <argument>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</argument>
                                 <argument>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</argument>
                                 <argument>-javaagent:lib/local/jar-loader/1.0/jar-loader-1.0.jar</argument>
                                 <argument>-classpath</argument>
@@ -331,7 +329,6 @@
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
-                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>
@@ -405,7 +402,6 @@
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
-                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>
@@ -450,7 +446,6 @@
                             <runtimeImage>${java.home}</runtimeImage>
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
-                                <option>--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>

@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-04-30
+
+- Swept three reflective JDK-internals shims (issue #1):
+  - `StyleUtilities.getWindowOpacity` no longer falls back through
+    `com.sun.awt.AWTUtilities` (removed in Java 9). It now calls
+    `Window.getOpacity` directly.
+  - `OSXAdapter` (reflective `com.apple.eawt.Application` wrapper) is
+    deleted. `AppFrame.installMacOsDesktopHandlers` already wires
+    About/Preferences/Quit/OpenFile through `java.awt.Desktop`; nothing
+    in tree referenced the old wrapper.
+  - `OSXHelper` no longer reflectively copies Aqua's menu UI delegates
+    onto Flatlaf. Flatlaf styles macOS menus competently on its own.
+    The helper is reduced to setting `apple.laf.useScreenMenuBar` and
+    arming `MnemonicInstaller`; `finish()` is now a no-op (still
+    invoked reflectively by `ThemeInstaller`).
+- Dropped the `--add-opens=java.desktop/com.apple.laf=ALL-UNNAMED`
+  carve-out from the `app` exec profile and all three jpackage
+  profiles. To keep `TchoTchoTheme` working on macOS (it returns
+  `UIManager.getSystemLookAndFeelClassName()`, which is
+  `com.apple.laf.AquaLookAndFeel`), `ThemeInstaller.installImpl` now
+  routes JDK-module LaFs through `UIManager.setLookAndFeel(String)` so
+  the instantiation happens with `java.desktop`'s own module
+  privileges. LaFs in our unnamed module (e.g. `StrangeNimbus`) keep
+  the original direct-reflection path and pre-install hook ordering.
+  `Theme.modifyLookAndFeelDefaults` / `modifyLookAndFeel` Javadoc was
+  updated to describe the per-path timing.
+
 ## 2026-04-29
 
 - Cut over the default update catalog URL from `strangeeons.fizmo.org`
