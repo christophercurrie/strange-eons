@@ -37,7 +37,7 @@ jobs:
       tag: ${{ steps.parse.outputs.tag }}
     steps:
       - name: Checkout (with full history for rev-list)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Parse version
@@ -119,8 +119,8 @@ jobs:
             mvn_prefix: ''
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: 'temurin'
@@ -149,7 +149,7 @@ jobs:
             rm -rf "Strange Eons"
           fi
       - name: Upload installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: deployment/installers/*
@@ -161,7 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all installer artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Rename to canonical asset names
