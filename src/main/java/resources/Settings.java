@@ -2102,18 +2102,20 @@ public class Settings implements Serializable, Iterable<String> {
                     case '{':
                         isLiteral = true;
                         valueText = valueText.substring(1, valueText.length() - (end == '}' ? 1 : 0));
-                        ScriptMonkey evaluator = tlStyleEvaluator.get();
-                        if (evaluator == null) {
-                            evaluator = new ScriptMonkey("style setting literal");
-                            evaluator.eval(
-                                "importPackage(gamedata);"
-                                + "importPackage(resources);"
-                                + "importClass(java.awt.font.TextAttribute);"
-                                + "importClass(java.awt.font.TransformAttribute);"
-                                + "importClass(java.awt.geom.AffineTransform);"
-                            );
-                            tlStyleEvaluator.set(evaluator);
-                        }
+                        // A fresh evaluator per call: caching it on a ThreadLocal
+                        // (the previous design) accumulated cross-engine scope
+                        // references in the evaluator's bindings, pinning per-DIY
+                        // ScriptMonkeys for the lifetime of the thread. Issue #7.
+                        // This whole literal-evaluator path is removed entirely
+                        // in the JS-extraction project (phase 5.1).
+                        ScriptMonkey evaluator = new ScriptMonkey("style setting literal");
+                        evaluator.eval(
+                            "importPackage(gamedata);"
+                            + "importPackage(resources);"
+                            + "importClass(java.awt.font.TextAttribute);"
+                            + "importClass(java.awt.font.TransformAttribute);"
+                            + "importClass(java.awt.geom.AffineTransform);"
+                        );
                         value = evaluator.eval(valueText);
                         break;
                     case '\'':
@@ -2150,8 +2152,6 @@ public class Settings implements Serializable, Iterable<String> {
         }
         return styleDesc.length();
     }
-    private static ThreadLocal<ScriptMonkey> tlStyleEvaluator = new ThreadLocal<>();
-    
 
     @SuppressWarnings("empty-statement")
     private static int findValueEnd(String styleDesc, int start) {

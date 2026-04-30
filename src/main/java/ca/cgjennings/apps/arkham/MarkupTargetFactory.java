@@ -127,26 +127,11 @@ public class MarkupTargetFactory {
             return null;
         }
 
-        if (potentialTarget == cachedComponent) {
-            if (isValidTarget(potentialTarget, strict)) {
-                return cachedTarget;
-            } else {
-                return null;
-            }
-        }
-
         if (isValidTarget(potentialTarget, strict)) {
-            MarkupTarget t = createInstance(potentialTarget);
-            cachedComponent = potentialTarget;
-            cachedTarget = t;
-            return t;
+            return createInstance(potentialTarget);
         }
-
         return null;
     }
-
-    private static Object cachedComponent;
-    private static MarkupTarget cachedTarget;
 
     private static CodeEditorBase findCodeEditingParent(JTextComponent c) {
         Component parent = c.getParent();

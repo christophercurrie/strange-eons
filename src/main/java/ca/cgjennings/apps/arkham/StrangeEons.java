@@ -59,6 +59,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -1487,10 +1488,11 @@ public final class StrangeEons {
      * @see #getCurrentMarkupTarget()
      */
     public MarkupTarget getMarkupTarget() {
-        if (lastTarget == null) {
+        Object t = lastTarget == null ? null : lastTarget.get();
+        if (t == null) {
             return null;
         }
-        return MarkupTargetFactory.createMarkupTarget(lastTarget, true);
+        return MarkupTargetFactory.createMarkupTarget(t, true);
     }
 
     /**
@@ -1527,7 +1529,7 @@ public final class StrangeEons {
                 Object oldValue = currentTarget;
                 currentTarget = potentialTarget;
                 if (currentTarget != null) {
-                    lastTarget = currentTarget;
+                    lastTarget = new WeakReference<>(currentTarget);
                 }
                 pcs.firePropertyChange(MARKUP_TARGET_PROPERTY, oldValue, potentialTarget);
             }
@@ -1537,7 +1539,10 @@ public final class StrangeEons {
     }
 
     private Object currentTarget; // has focus + valid
-    private Object lastTarget; // most recent non-null currentTarget
+    // Held weakly so that closing the editor that hosts the markup target
+    // doesn't pin the editor's component tree (and through it the
+    // GameComponent / DIY / Sheet / per-DIY ScriptMonkey). Issue #7.
+    private WeakReference<Object> lastTarget;
 
     /**
      * Inserts a string into the most recently valid application-wide markup

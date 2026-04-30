@@ -1258,14 +1258,15 @@ public class PortraitPanel extends javax.swing.JPanel implements java.awt.event.
         }
     }
 
-    @Deprecated
     @Override
-    protected void finalize() throws Throwable {
-        try {
-            FileChangeMonitor.getSharedInstance().removeFileChangeListener(this);
-        } finally {
-            super.finalize();
-        }
+    public void removeNotify() {
+        // Deregister from the shared FileChangeMonitor when this panel is
+        // detached from its parent (typically when its owning editor closes).
+        // Without this, the static FileChangeMonitor pins the panel — and
+        // through it the editor's GameComponent / DIY / per-DIY ScriptMonkey.
+        // Issue #7.
+        FileChangeMonitor.getSharedInstance().removeFileChangeListener(this);
+        super.removeNotify();
     }
 
     @SuppressWarnings("serial")

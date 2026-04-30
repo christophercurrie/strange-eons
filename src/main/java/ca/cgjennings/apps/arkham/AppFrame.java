@@ -846,7 +846,7 @@ final class AppFrame extends StrangeEonsAppWindow {
         jSeparator36 = new javax.swing.JPopupMenu.Separator();
         javax.swing.JMenuItem superscriptItem = new javax.swing.JMenuItem();
         javax.swing.JMenuItem subscriptItem = new javax.swing.JMenuItem();
-        javax.swing.JPopupMenu.Separator jSeparator26 = new javax.swing.JPopupMenu.Separator();
+        javax.swing.JPopupMenu.Separator jSeparator40 = new javax.swing.JPopupMenu.Separator();
         markupAbbreviationsItem = new javax.swing.JMenuItem();
         deckMenu = new javax.swing.JMenu();
         javax.swing.JMenuItem toFrontItem = new javax.swing.JMenuItem();
@@ -1275,8 +1275,8 @@ final class AppFrame extends StrangeEonsAppWindow {
         subscriptItem.setName("subscriptItem"); // NOI18N
         markupMenu.add(subscriptItem);
 
-        jSeparator26.setName("jSeparator26"); // NOI18N
-        markupMenu.add(jSeparator26);
+        jSeparator40.setName("jSeparator40"); // NOI18N
+        markupMenu.add(jSeparator40);
 
         markupAbbreviationsItem.setAction( Commands.MARKUP_ABBREVIATIONS );
         markupAbbreviationsItem.setName("markupAbbreviationsItem"); // NOI18N

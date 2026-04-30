@@ -403,6 +403,9 @@ public final class ContextBar {
             fireOnDetach();
         }
         target = newtarget;
+        // Drop stale cached context so we don't pin the previous target's
+        // component tree (and through it the editor + GameComponent). Issue #7.
+        cachedContext = null;
         fireOnAttach();
 
         if (newtarget != null) {

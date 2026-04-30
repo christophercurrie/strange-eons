@@ -1,5 +1,6 @@
 package ca.cgjennings.apps.arkham.plugins;
 
+import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.TextEncoding;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
 import ca.cgjennings.ui.theme.ThemedGlyphIcon;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.logging.Level;
 import javax.script.ScriptException;
 import static resources.Language.string;
 import resources.ResourceKit;
@@ -29,6 +31,7 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
 
     private String scriptFile;
     private ScriptMonkey monkey;
+    private PluginContext lastBoundContext;
     private boolean scriptEvalsOK;
     private String name;
     private String description;
@@ -51,7 +54,7 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
         }
     }
 
-    private boolean installScript() {
+    private boolean evaluateScriptInto(ScriptMonkey m) throws IOException {
         InputStream in = null;
         try {
             if (ScriptMonkey.isLibraryNameAURL(scriptFile)) {
@@ -64,15 +67,8 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
                 in = new FileInputStream(scriptFile);
             }
             BufferedReader r = new BufferedReader(new InputStreamReader(in, TextEncoding.SOURCE_CODE));
-
-            scriptEvalsOK = true;
-            Object retval = monkey.eval(r);
-            if (retval != null && retval instanceof ScriptException) {
-                scriptEvalsOK = false;
-            }
-        } catch (IOException e) {
-            ErrorDialog.displayError(string("rk-err-script-file"), e);
-            scriptEvalsOK = false;
+            Object retval = m.eval(r);
+            return retval == null || !(retval instanceof ScriptException);
         } finally {
             if (in != null) {
                 try {
@@ -81,7 +77,56 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
                 }
             }
         }
+    }
+
+    private boolean installScript() {
+        try {
+            scriptEvalsOK = evaluateScriptInto(monkey);
+        } catch (IOException e) {
+            ErrorDialog.displayError(string("rk-err-script-file"), e);
+            scriptEvalsOK = false;
+        }
         return scriptEvalsOK;
+    }
+
+    /**
+     * Releases this plug-in's script engine, dropping the JavaScript
+     * reflective wrapper graph that Rhino accumulated against it. The next
+     * call that needs the engine ({@link #showPlugin}, {@link #call},
+     * {@link #getScriptMonkey}) will lazily re-instantiate it and re-evaluate
+     * the plug-in script. If re-evaluation fails the plug-in becomes
+     * inoperative.
+     *
+     * <p>Intended for on-demand memory recycling (e.g. a Toolbox menu
+     * action), not for the normal plug-in lifecycle.
+     *
+     * @return true if a live engine was released, false if there was none
+     */
+    public synchronized boolean recycleScriptMonkey() {
+        if (monkey == null) {
+            return false;
+        }
+        monkey = null;
+        return true;
+    }
+
+    private synchronized ScriptMonkey requireMonkey() {
+        if (monkey == null && scriptEvalsOK && lastBoundContext != null) {
+            ScriptMonkey newMonkey = new ScriptMonkey(scriptFile);
+            newMonkey.bind(lastBoundContext);
+            try {
+                if (evaluateScriptInto(newMonkey)) {
+                    monkey = newMonkey;
+                } else {
+                    scriptEvalsOK = false;
+                }
+            } catch (IOException e) {
+                StrangeEons.log.log(Level.WARNING,
+                        "could not re-evaluate plug-in script: " + scriptFile, e);
+                scriptEvalsOK = false;
+            }
+        }
+        return monkey;
     }
 
     /**
@@ -102,6 +147,7 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
 
         monkey = new ScriptMonkey(scriptFile);
         monkey.bind(context);
+        lastBoundContext = context;
 
         name = scriptFile;
         description = null;
@@ -163,11 +209,13 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      * {@inheritDoc}
      */
     @Override
-    public void unloadPlugin() {
-        if (scriptEvalsOK) {
+    public synchronized void unloadPlugin() {
+        if (scriptEvalsOK && monkey != null) {
             monkey.ambivalentCall("unload");
             ScriptMonkey.getSharedConsole().flush();
         }
+        monkey = null;
+        scriptEvalsOK = false;
     }
 
     /**
@@ -213,13 +261,19 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      */
     @Override
     public void showPlugin(PluginContext context, boolean show) {
-        if (scriptEvalsOK) {
-            monkey.bind(context);
-            if (show) {
-                monkey.ambivalentCall(show ? "run" : "hide");
+        if (!scriptEvalsOK) {
+            return;
+        }
+        ScriptMonkey m = requireMonkey();
+        if (m == null) {
+            return;
+        }
+        m.bind(context);
+        lastBoundContext = context;
+        if (show) {
+            m.ambivalentCall(show ? "run" : "hide");
 //                ((PluginContextImpl) context).synchronize();
-                ScriptMonkey.getSharedConsole().flush();
-            }
+            ScriptMonkey.getSharedConsole().flush();
         }
     }
 
@@ -231,8 +285,9 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      */
     @Override
     public boolean isPluginShowing() {
-        if (scriptEvalsOK) {
-            Object retval = monkey.ambivalentCall("isShowing");
+        ScriptMonkey m = monkey;
+        if (scriptEvalsOK && m != null) {
+            Object retval = m.ambivalentCall("isShowing");
             if (retval != null && retval instanceof Boolean) {
                 ScriptMonkey.getSharedConsole().flush();
                 return ((Boolean) retval);
@@ -271,7 +326,7 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      */
     @Override
     public ScriptMonkey getScriptMonkey() {
-        return monkey;
+        return requireMonkey();
     }
 
     /**
@@ -283,7 +338,8 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      * @return the return value returned by the function, or {@code null}
      */
     public Object call(String name, Object[] args) {
-        return monkey.call(name, args);
+        ScriptMonkey m = requireMonkey();
+        return m == null ? null : m.call(name, args);
     }
     
     /**
@@ -300,13 +356,14 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
     public ThemedIcon getPluginIcon() {
         if (pluginIcon == null) {
             // Look to see if the script contains this method
-            if (scriptEvalsOK) {
-                Object retval = monkey.ambivalentCall("getPluginIcon");
+            ScriptMonkey m = monkey;
+            if (scriptEvalsOK && m != null) {
+                Object retval = m.ambivalentCall("getPluginIcon");
                 if (retval != null && retval instanceof ThemedIcon) {
                     ScriptMonkey.getSharedConsole().flush();
                     return (ThemedIcon) retval;
                 }
-                retval = monkey.ambivalentCall("getRepresentativeImage");
+                retval = m.ambivalentCall("getRepresentativeImage");
                 if (retval != null && retval instanceof BufferedImage) {
                     ScriptMonkey.getSharedConsole().flush();
                     return new ThemedSingleImageIcon((BufferedImage) retval);
@@ -353,8 +410,9 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      */
     @Override
     public boolean isPluginUsable() {
-        if (scriptEvalsOK) {
-            Object retval = monkey.ambivalentCall("isUsable");
+        ScriptMonkey m = monkey;
+        if (scriptEvalsOK && m != null) {
+            Object retval = m.ambivalentCall("isUsable");
             if (retval != null && retval instanceof Boolean) {
                 return ((Boolean) retval);
             }
@@ -372,8 +430,9 @@ public class DefaultScriptedPlugin implements Plugin, ScriptedPlugin {
      */
     @Override
     public String getDefaultAcceleratorKey() {
-        if (scriptEvalsOK) {
-            Object retval = monkey.ambivalentCall("getDefaultAcceleratorKey");
+        ScriptMonkey m = monkey;
+        if (scriptEvalsOK && m != null) {
+            Object retval = m.ambivalentCall("getDefaultAcceleratorKey");
             if (retval != null) {
                 return retval.toString();
             }

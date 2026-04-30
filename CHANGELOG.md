@@ -2,6 +2,48 @@
 
 ## 2026-04-30
 
+- Plugged five GameComponent post-close retention paths and added
+  on-demand recycling for scripted-plugin engines (issue #7). Each path
+  was a stale reference into a closed editor's component tree that, via
+  Sheet → DIY → per-DIY `ScriptMonkey`, anchored Rhino's
+  `JavaMembers` / `NativeJavaMethod` / `MemberBox` / slot-map graphs:
+  - **`StrangeEons.lastTarget`** is now a `WeakReference<Object>`. The
+    field tracks the most-recent valid markup target; previously it
+    pinned the `JSpellingTextField`'s parent editor for the rest of the
+    session.
+  - **`MarkupTargetFactory` static cache removed.** `cachedComponent`
+    and `cachedTarget` were a single-slot strong-ref pair pinning one
+    editor at a time. The wrapper is cheap enough to recreate on each
+    `createMarkupTarget` call; no caller depends on identity equality
+    of the returned target.
+  - **`ContextBar.cachedContext` cleared eagerly on target change.**
+    Previously refreshed only lazily in `getContext()`; if no caller
+    invoked `getContext()` between editor close and the next markup
+    target arriving, the stale `Context` (and its `target` text field)
+    persisted.
+  - **`Settings.tlStyleEvaluator` ThreadLocal removed.** The cached
+    style-literal `ScriptMonkey` accumulated cross-engine scope
+    references in its bindings (a Rhino closure registered as a JS
+    proxy adapter on a Swing component would link the style evaluator
+    to a per-DIY engine), pinning per-DIY `ScriptMonkey`s for the
+    lifetime of the thread. `nextStyle` now creates a fresh evaluator
+    per `{...}` literal. Note: re-importing packages on each call is
+    measurably slower on tab-switch with many style settings; the whole
+    JS literal-evaluator path is removed in the JS-extraction project's
+    phase 5.1.
+  - **`PortraitPanel` now overrides `removeNotify`** to deregister
+    itself from the shared `FileChangeMonitor`. The deprecated
+    `finalize()` cleanup is gone — `removeNotify` is the proper Swing
+    lifecycle hook and runs deterministically when the panel detaches
+    from its editor.
+- New plug-in lifecycle for `DefaultScriptedPlugin`: the engine is
+  lazy + recyclable. The `monkey` field is now nullable; readers go
+  through `requireMonkey()` which lazily re-instantiates a
+  `ScriptMonkey` and re-evaluates the plug-in script (using a saved
+  `lastBoundContext`). New `recycleScriptMonkey()` drops the engine
+  on demand for internal callers (no user-facing trigger today).
+  `unloadPlugin` now permanently nulls the engine and locks
+  `scriptEvalsOK` to prevent re-init.
 - Swept three reflective JDK-internals shims (issue #1):
   - `StyleUtilities.getWindowOpacity` no longer falls back through
     `com.sun.awt.AWTUtilities` (removed in Java 9). It now calls
