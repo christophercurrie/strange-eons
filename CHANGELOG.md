@@ -40,6 +40,31 @@
     dramatically because most surviving images are the AHLCG plug-in's
     intentional preloaded asset cache stored in
     `StrangeEons.namedObjects` (out of scope for SE core).
+- Process-wide compiled-script cache for the JSR-223 engine. Each
+  `ScriptMonkey` previously created a fresh `SEScriptEngine` and
+  re-parsed/re-compiled the same handful of bootstrap libraries
+  (`<library bootstrap>`, `common`, `backwards-compatibility`,
+  `imageutils`, etc.) on every component, sheet, and tile. New
+  `CompiledScriptCache` keys compiled `Script` objects by SHA-256 of
+  source plus filename, optimization level, and warnings-as-errors
+  flag, and `SEScriptEngine.eval(Reader, ScriptContext)` now reads the
+  source, looks up the cache, and execs the cached `Script` instead of
+  going through `Context.evaluateReader`. Measured on the Arkham Horror
+  LCG plug-in:
+  - **Boot** (88 ScriptMonkeys): bootstrap-library re-eval down from
+    1907 ms to 326 ms (5.8×). `common.js` 645→96 ms, bootstrap
+    791→196 ms, backwards-compatibility 328→22 ms, imageutils
+    143→12 ms.
+  - **Single-component open** (271 new ScriptMonkeys): bootstrap
+    re-eval down from 4290 ms to 172 ms (25×). Average ScriptMonkey
+    construction time 7 ms → 1.4 ms (5×).
+  - Cache hit rate stabilizes at 97% with 73 unique entries on this
+    plug-in mix.
+  - New `ScriptEngineMetrics` class is gated on
+    `-Dstrange-eons.script-perf-log=true` (zero overhead when off);
+    optional file output via `-Dstrange-eons.script-perf-file=<path>`.
+  - No public API change. Shared top-level scope (heap-footprint win)
+    deferred to a follow-up.
 - Plugged five GameComponent post-close retention paths and added
   on-demand recycling for scripted-plugin engines (issue #7). Each path
   was a stale reference into a closed editor's component tree that, via

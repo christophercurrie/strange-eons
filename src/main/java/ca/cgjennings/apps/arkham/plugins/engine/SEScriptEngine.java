@@ -34,6 +34,7 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
      * Creates a new script engine.
      */
     SEScriptEngine(SEScriptEngineFactory factory) {
+        final long start = ScriptEngineMetrics.ENABLED ? System.nanoTime() : 0L;
         this.factory = Objects.requireNonNull(factory);
         // wrap bindings created by AbstractScriptEngine
         Bindings raw = context.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -47,6 +48,9 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
         } finally {
             Context.exit();
         }
+        if (ScriptEngineMetrics.ENABLED) {
+            ScriptEngineMetrics.engineCreated(System.nanoTime() - start);
+        }
     }
 
     @Override
@@ -57,21 +61,41 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
     @Override
     public Object eval(Reader reader, ScriptContext scriptContext) throws ScriptException {
         final String fileName = EngineUtilities.fileNameFrom(scriptContext);
+        final long start = ScriptEngineMetrics.ENABLED ? System.nanoTime() : 0L;
+
+        final String source;
+        try {
+            source = readFully(reader);
+        } catch (IOException ioex) {
+            throw EngineUtilities.convertException(ioex, fileName);
+        }
 
         Object retval;
         ScriptDebugging.prepareToEnterContext();
         final Context cx = Context.enter();
         try {
+            Script script = CompiledScriptCache.getOrCompile(cx, source, fileName);
             Scriptable scope = createScriptableForContext(scriptContext);
-            retval = cx.evaluateReader(scope, reader, fileName, 1, null);
+            retval = script.exec(cx, scope);
         } catch (RhinoException rex) {
             throw EngineUtilities.convertException(rex);
-        } catch (IOException ioex) {
-            throw EngineUtilities.convertException(ioex, fileName);
         } finally {
             Context.exit();
+            if (ScriptEngineMetrics.ENABLED) {
+                ScriptEngineMetrics.evalRecorded(fileName, System.nanoTime() - start);
+            }
         }
         return EngineUtilities.unwrapJsObject(retval);
+    }
+
+    private static String readFully(Reader r) throws IOException {
+        StringBuilder sb = new StringBuilder(8192);
+        char[] buf = new char[8192];
+        int n;
+        while ((n = r.read(buf)) >= 0) {
+            sb.append(buf, 0, n);
+        }
+        return sb.toString();
     }
 
     @Override
