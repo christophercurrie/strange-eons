@@ -80,6 +80,27 @@ Binding.prototype.initComponent = function initComponent() {
     } else {
         this.settingToControl(value, this.control);
     }
+
+    // Seed null settings with the control's effective value. Without this,
+    // a binding added by a plug-in update against a saved component that
+    // predates the binding would have settings.get(name) == null on open.
+    // The first heartbeat's update() would then see null vs the control's
+    // default (e.g. '0' for an unchecked checkbox) and call markChanged,
+    // making the editor look modified the moment it opens — even though
+    // the user hasn't touched anything. Persisting the default here keeps
+    // the next update() in equality and the editor clean. Settings.set
+    // does not itself dirty the component.
+    if (this.settings.get(this.name) == null) {
+        var defaultValue;
+        if (this.control instanceof SettingBackedControl) {
+            defaultValue = this.control.toSetting();
+        } else {
+            defaultValue = this.controlToSetting(this.control);
+        }
+        if (defaultValue != null) {
+            this.settings.set(this.name, defaultValue);
+        }
+    }
 };
 
 Binding.prototype.controlToSetting = function controlToSetting(control) {

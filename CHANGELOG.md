@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-05-01
+
+- Stop the editor from immediately marking saved components dirty when a
+  plug-in adds a new UI binding to a component type. Reproduced on AHLCG
+  Chaos / Act / Agenda / Location cards saved before the plug-in's
+  November 2025 `flipSuffix` checkbox binding was added: opening such a
+  card showed the unsaved-changes asterisk before any user interaction
+  and prompted to save on close. Root cause: `Binding.prototype.update`
+  in `uibindings.js` saw `oldValue == null` (setting absent on disk) vs.
+  `newValue == '0'` (checkbox default) on the first heartbeat after
+  open, wrote the setting, and called `markChanged`. `initComponent` now
+  seeds null-valued settings with the control's read-back default during
+  field population so the next `update()` finds equality and the
+  component stays clean. `Settings.set` does not itself dirty the
+  component, so the seed is silent.
+
 ## 2026-04-30
 
 - Released per-DIY JavaScript engines on editor close (issue #14). After
