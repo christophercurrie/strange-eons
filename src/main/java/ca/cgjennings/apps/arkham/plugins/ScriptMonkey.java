@@ -6,6 +6,7 @@ import ca.cgjennings.apps.arkham.TextEncoding;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
 import ca.cgjennings.apps.arkham.dialog.prefs.Preferences;
 import ca.cgjennings.apps.arkham.plugins.debugging.ScriptDebugging;
+import ca.cgjennings.apps.arkham.plugins.engine.ScriptEngineMetrics;
 import ca.cgjennings.apps.arkham.plugins.engine.SEScriptEngineFactory;
 import ca.cgjennings.apps.arkham.plugins.engine.SettingBindings;
 import java.awt.EventQueue;
@@ -78,6 +79,7 @@ public final class ScriptMonkey {
      * @see #setInternalFileName(java.lang.String)
      */
     public ScriptMonkey(String scriptFileName) {
+        final long start = ScriptEngineMetrics.ENABLED ? System.nanoTime() : 0L;
         engine = createScriptEngine();
         engine.put(VAR_FILE, scriptFileName);
         setInternalFileName(scriptFileName);
@@ -85,6 +87,9 @@ public final class ScriptMonkey {
         ScriptContext context = engine.getContext();
         context.setWriter(console.getWriter());
         context.setErrorWriter(console.getErrorWriter());
+        if (ScriptEngineMetrics.ENABLED) {
+            ScriptEngineMetrics.scriptMonkeyCreated(System.nanoTime() - start);
+        }
     }
 
     /**
