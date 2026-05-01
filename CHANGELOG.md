@@ -2,6 +2,28 @@
 
 ## 2026-05-01
 
+- Strip JS-proxy listeners from the editor's own `listenerList` on
+  dispose so the per-DIY `ScriptMonkey` engine becomes reclaimable
+  even when an unrelated retention path (e.g. the third-party spelling
+  library's listener cache) keeps the editor reachable. Issue #19.
+  Plug-in JavaScript registers heartbeat / field-population listeners
+  on `AbstractGameComponentEditor` via `uibindings.js`'s
+  `bindings.bind()`. Each listener is a Rhino-generated `Proxy` whose
+  `InvocationHandler` captures the engine's top-level scope through a
+  `NativeCall` closure. Until now, only the Swing-children pass added
+  in #14 (`stripJSProxyListeners(this)`) cleared JS proxies — the
+  editor's own `listenerList` was untouched, so any path
+  `... → editor → listenerList → JSProxy → NativeCall → engine` kept
+  the engine alive. Issue #14's repro happened not to exercise that
+  path, but a real project-tree / close-all flow on the AHLCG plug-in
+  did: ~12 per-DIY engines stayed pinned post-close, each ~10 MB of
+  `NativeJavaMethod` / `MemberBox` / slot-map machinery. The new
+  `stripJSProxyListenersFromSelf` walks `listenerList`'s
+  `[class, listener, ...]` array and removes every entry whose value
+  is a JS proxy, regardless of the listener interface. Verified on
+  the same repro: post-close `ScriptMonkey` count returns to baseline
+  (1) instead of 13; `NativeJavaMethod` / `MemberBox` /
+  `EmbeddedSlotMap` deltas drop to single digits over baseline.
 - Stop the editor from immediately marking saved components dirty when a
   plug-in adds a new UI binding to a component type. Reproduced on AHLCG
   Chaos / Act / Agenda / Location cards saved before the plug-in's

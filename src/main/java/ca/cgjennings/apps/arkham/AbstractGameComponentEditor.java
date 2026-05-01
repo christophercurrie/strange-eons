@@ -251,6 +251,37 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
     }
 
     /**
+     * Removes any JS-proxy listeners registered on this editor's own
+     * {@code listenerList} (e.g. heartbeat / field-population listeners
+     * registered by plug-in JavaScript via {@code uibindings.js}). A JS
+     * proxy listener captures the per-component {@link ScriptMonkey}
+     * engine via its {@code NativeCall} closure; if any Java retention
+     * path keeps this editor reachable post-close, the engine remains
+     * reachable through the listener. Stripping these entries breaks
+     * the editor → engine edge so the engine becomes reclaimable
+     * regardless of who else might still hold the editor.
+     *
+     * <p>The companion {@link #stripJSProxyListeners} walks Swing children;
+     * this method handles the editor's own listener bus.
+     */
+    private int stripJSProxyListenersFromSelf() {
+        int count = 0;
+        Object[] entries = listenerList.getListenerList();
+        // entries is laid out as [class, listener, class, listener, ...]
+        for (int i = entries.length - 2; i >= 0; i -= 2) {
+            Class<?> type = (Class<?>) entries[i];
+            Object listener = entries[i + 1];
+            if (isJSProxy(listener)) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                Class<java.util.EventListener> eventType = (Class) type;
+                listenerList.remove(eventType, (java.util.EventListener) listener);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
      * Make any special changes needed to localize this editor for the host
      * platform. The base implementation is intended for game component editors.
      */
@@ -1119,6 +1150,7 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
         // the listener outlives the editor and pins the engine + its
         // BufferedImages / sheets / Rhino reflective wrappers. Issue #14.
         stripJSProxyListeners(this);
+        stripJSProxyListenersFromSelf();
 
         G gc = getGameComponent();
         if (gc instanceof DIY) {
