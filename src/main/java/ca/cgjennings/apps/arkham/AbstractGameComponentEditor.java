@@ -11,6 +11,7 @@ import ca.cgjennings.apps.arkham.deck.PDFPrintSupport;
 import ca.cgjennings.apps.arkham.deck.item.CardFace;
 import ca.cgjennings.apps.arkham.deck.item.TextBoxEditor;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
+import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYEditor;
 import ca.cgjennings.apps.arkham.editors.AbbreviationTableManager;
 import ca.cgjennings.apps.arkham.plugins.PluginContextFactory;
@@ -154,6 +155,98 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
                     v.releaseCachedImage();
                 }
             }
+        }
+    }
+
+    /**
+     * Walks the component tree rooted at {@code root} and removes any
+     * {@link java.awt.event.ActionListener} whose implementation is a
+     * Rhino-generated JS proxy. Returns the number of listeners removed.
+     * Used at editor dispose to break per-DIY engine retention via plug-in
+     * JS listeners (issue #14).
+     */
+    private static int stripJSProxyListeners(Component root) {
+        int count = stripJSProxyListenersOn(root);
+        if (root instanceof Container) {
+            Container c = (Container) root;
+            for (int i = 0; i < c.getComponentCount(); i++) {
+                count += stripJSProxyListeners(c.getComponent(i));
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Strip JS-proxy listeners from one component by reflectively walking
+     * every {@code getXxxListeners()} accessor and using the matching
+     * {@code removeXxxListener(...)} method to drop proxy entries. Covers
+     * ActionListener, ChangeListener, ItemListener, DocumentListener,
+     * FocusListener, KeyListener, Mouse*Listener, PropertyChangeListener,
+     * etc. without enumerating types by hand.
+     */
+    private static int stripJSProxyListenersOn(Component c) {
+        int count = 0;
+        Class<?> cls = c.getClass();
+        for (java.lang.reflect.Method getter : cls.getMethods()) {
+            String name = getter.getName();
+            if (!name.startsWith("get") || !name.endsWith("Listeners")) {
+                continue;
+            }
+            if (getter.getParameterCount() != 0) {
+                continue;
+            }
+            Class<?> ret = getter.getReturnType();
+            if (!ret.isArray()) {
+                continue;
+            }
+            Class<?> elementType = ret.getComponentType();
+            if (!java.util.EventListener.class.isAssignableFrom(elementType)) {
+                continue;
+            }
+            try {
+                java.util.EventListener[] listeners = (java.util.EventListener[]) getter.invoke(c);
+                if (listeners == null || listeners.length == 0) {
+                    continue;
+                }
+                String removeName = "remove" + name.substring(3, name.length() - 1);
+                java.lang.reflect.Method remover = null;
+                for (java.lang.reflect.Method m : cls.getMethods()) {
+                    if (m.getName().equals(removeName)
+                            && m.getParameterCount() == 1
+                            && m.getParameterTypes()[0].isAssignableFrom(elementType)) {
+                        remover = m;
+                        break;
+                    }
+                }
+                if (remover == null) {
+                    continue;
+                }
+                for (java.util.EventListener l : listeners) {
+                    if (isJSProxy(l)) {
+                        remover.invoke(c, l);
+                        count++;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return count;
+    }
+
+    private static boolean isJSProxy(Object listener) {
+        if (listener == null) {
+            return false;
+        }
+        Class<?> cls = listener.getClass();
+        if (!java.lang.reflect.Proxy.isProxyClass(cls)) {
+            return false;
+        }
+        try {
+            Object handler = java.lang.reflect.Proxy.getInvocationHandler(listener);
+            return handler != null
+                    && handler.getClass().getName().contains("org.mozilla.javascript");
+        } catch (Throwable t) {
+            return false;
         }
     }
 
@@ -1013,6 +1106,24 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
         rasterReleaseTimer.stop();
         AppFrame.getApp().removeEditorListener(rasterReleaseListener);
         releaseSheetRasters();
+
+        // Recycle the DIY's per-component JavaScript engine before we let go
+        // of the GameComponent: even if a stale listener (typically registered
+        // by a plug-in's JS code) keeps the component reachable post-dispose,
+        // the engine and its captured BufferedImages / sheets / Rhino
+        // reflective wrappers become unreachable and can be GC'd. Issue #14.
+        // Strip JavaScript-proxy listeners from this editor's component tree
+        // before disposing. Plug-in JS often registers Rhino-proxy listeners
+        // on JButtons / text fields whose handler captures the entire
+        // per-DIY engine via NativeCall closure state. Without this strip,
+        // the listener outlives the editor and pins the engine + its
+        // BufferedImages / sheets / Rhino reflective wrappers. Issue #14.
+        stripJSProxyListeners(this);
+
+        G gc = getGameComponent();
+        if (gc instanceof DIY) {
+            ((DIY) gc).recycleScriptMonkey();
+        }
 
         // there seems to be a JInternalFrame memory leak happening in some cases
         // this should reduce the damage

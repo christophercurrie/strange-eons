@@ -2849,4 +2849,84 @@ public class DIY extends AbstractGameComponent implements Handler {
         checkPropertyLock();
         upgradeConversionTrigger = new UpgradeConversionTrigger(className, extensionName, extensionId);
     }
+
+    /**
+     * Releases this DIY's per-component JavaScript engine and replaces its
+     * handler with a no-op stub. The next call into {@code handler.paint*},
+     * {@code handler.create}, etc. is a silent no-op; the JS-side bindings
+     * (and the BufferedImages, sheets, and Rhino reflective wrappers they
+     * captured) become unreachable and can be reclaimed.
+     *
+     * <p>Intended to be called when the editor that owns this component is
+     * disposed: per-component engines accumulate state across the editor's
+     * lifetime, including listener closures registered by plug-in JS code,
+     * and would otherwise outlive the editor whenever something pins the
+     * DIY (clipboard / undo / a leaked listener — see issue #7).
+     *
+     * <p>If a recycled DIY is later rendered (e.g. via clipboard preview or
+     * undo/redo), the no-op handler produces a blank face. Acceptable
+     * trade-off because the alternative is keeping ~7,900 Rhino reflective
+     * wrappers alive per closed editor.
+     *
+     * @return {@code true} if a live engine was released
+     */
+    public synchronized boolean recycleScriptMonkey() {
+        if (monkey == null) {
+            return false;
+        }
+        // Plug-in JS often registers Java-proxy listeners on Swing
+        // components that outlive the editor (e.g. an ActionListener on a
+        // JButton stored in a long-lived UI element). Such a proxy keeps
+        // the entire JS engine reachable, so just nulling our reference
+        // here would free nothing. Empty the engine's bindings + Rhino
+        // top-level scope so the still-rooted engine has a tiny footprint.
+        try {
+            javax.script.ScriptEngine engine = monkey.getEngine();
+            javax.script.Bindings b = engine.getBindings(javax.script.ScriptContext.ENGINE_SCOPE);
+            if (b != null) {
+                b.clear();
+            }
+            // Also drop user-defined properties on the Rhino top-level scope
+            // (where slot-map values like NativeArrays of DefaultPortraits live).
+            java.lang.reflect.Field tlField =
+                    Class.forName("ca.cgjennings.apps.arkham.plugins.engine.SEScriptEngine")
+                            .getDeclaredField("topLevel");
+            tlField.setAccessible(true);
+            Object tl = tlField.get(engine);
+            if (tl instanceof org.mozilla.javascript.ScriptableObject) {
+                org.mozilla.javascript.ScriptableObject so =
+                        (org.mozilla.javascript.ScriptableObject) tl;
+                Object[] ids = so.getAllIds();
+                for (Object id : ids) {
+                    try {
+                        if (id instanceof String) {
+                            so.delete((String) id);
+                        } else if (id instanceof Number) {
+                            so.delete(((Number) id).intValue());
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            // best effort — the proxy-held engine's footprint just stays large
+        }
+        monkey = null;
+        handler = NOOP_HANDLER;
+        return true;
+    }
+
+    private static final Handler NOOP_HANDLER = new Handler() {
+        @Override public void create(DIY diy) {}
+        @Override public void createInterface(DIY diy, DIYEditor editor) {}
+        @Override public void createFrontPainter(DIY diy, DIYSheet sheet) {}
+        @Override public void createBackPainter(DIY diy, DIYSheet sheet) {}
+        @Override public void paintFront(java.awt.Graphics2D g, DIY diy, DIYSheet sheet) {}
+        @Override public void paintBack(java.awt.Graphics2D g, DIY diy, DIYSheet sheet) {}
+        @Override public void onClear(DIY diy) {}
+        @Override public void onRead(DIY diy, java.io.ObjectInputStream in) {}
+        @Override public void onWrite(DIY diy, java.io.ObjectOutputStream out) {}
+        @Override public int getPortraitCount() { return 0; }
+        @Override public Portrait getPortrait(int index) { return null; }
+    };
 }

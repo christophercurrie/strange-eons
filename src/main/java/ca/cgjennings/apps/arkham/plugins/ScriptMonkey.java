@@ -48,6 +48,15 @@ public final class ScriptMonkey {
     private final ScriptEngine engine;
 
     /**
+     * Returns this monkey's underlying script engine. Intended for callers
+     * that need to manipulate engine bindings directly (e.g. to clear all
+     * user-defined globals on engine recycle).
+     */
+    public ScriptEngine getEngine() {
+        return engine;
+    }
+
+    /**
      * If a component's private settings set this key, then the script it
      * contains will be executed when the component is installed in an editor.
      */

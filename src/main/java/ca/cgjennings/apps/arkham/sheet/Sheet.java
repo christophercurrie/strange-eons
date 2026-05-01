@@ -1704,6 +1704,12 @@ public abstract class Sheet<G extends GameComponent> {
         checkUnlocked();
         image = null;
         finishedImage = null;
+        // Drop the per-sheet ON_PAINT script engine so its Rhino bindings
+        // (and the BufferedImages they capture via JS-level closures) can
+        // GC. The lazy re-creation path in paint() already handles
+        // cacheOnPaintMonkey == null. Issue #14.
+        cacheOnPaintMonkey = null;
+        cacheOnPaintSource = null;
     }
 
     //

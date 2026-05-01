@@ -2,6 +2,44 @@
 
 ## 2026-04-30
 
+- Released per-DIY JavaScript engines on editor close (issue #14). After
+  the issue #6 grace timer fix and the issue #7 retention sweep, the
+  dominant remaining post-close retention was 10+ per-DIY Rhino engines
+  per session (~7,900 `NativeJavaMethod` / 7,900 `MemberBox` / 7,000
+  `EmbeddedSlotMap` each), kept alive by Rhino-proxy listeners that
+  plug-in JavaScript installs on Swing components in the editor's UI.
+  When the editor disposes, those proxies were still on the components'
+  listener lists, and each proxy's invocation handler captured the
+  entire per-DIY engine via `NativeCall` closure state.
+  - `AbstractGameComponentEditor.dispose` now walks its component tree
+    and removes any listener (any `EventListener` subtype) whose
+    implementation is a Rhino-generated `Proxy` whose invocation
+    handler comes from `org.mozilla.javascript`. SE-internal listeners
+    are untouched. Detected via `Proxy.isProxyClass` +
+    `Proxy.getInvocationHandler().getClass().getName()`.
+  - `DIY` gains a `recycleScriptMonkey()` that drops the per-component
+    engine reference, replaces the `Handler` with a no-op stub
+    (`NOOP_HANDLER` returns blanks for `paintFront/paintBack/...`,
+    zero portraits, etc.), clears engine bindings, and deletes the
+    Rhino top-level scope's user-defined slots. If an external
+    listener proxy still keeps the engine reachable, its in-engine
+    footprint becomes empty.
+  - `Sheet.freeCachedResources` now also nulls `cacheOnPaintMonkey`
+    and its source, so the per-Sheet ON_PAINT engine releases too.
+    The lazy re-creation path in paint already handles
+    `cacheOnPaintMonkey == null`.
+  - Hooked into `AbstractGameComponentEditor.dispose`: after stripping
+    JS-proxy listeners, recycle the `GameComponent`'s engine if it's
+    a `DIY`. Trade-off: a recycled DIY rendered later (clipboard
+    preview, undo/redo) shows a blank face — acceptable because the
+    alternative is keeping the entire engine state alive indefinitely.
+  - Verified delta on a 10-editor close + project-close repro:
+    `NativeJavaMethod` 96,478 → 8,000 (-92%), `MemberBox` 115,767 →
+    9,649 (-92%), `EmbeddedSlotMap` 106,899 → 9,196 (-91%), heap-dump
+    size 363 MB → 263 MB. The `BufferedImage` count drops less
+    dramatically because most surviving images are the AHLCG plug-in's
+    intentional preloaded asset cache stored in
+    `StrangeEons.namedObjects` (out of scope for SE core).
 - Plugged five GameComponent post-close retention paths and added
   on-demand recycling for scripted-plugin engines (issue #7). Each path
   was a stale reference into a closed editor's component tree that, via
