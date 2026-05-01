@@ -2,6 +2,29 @@
 
 ## 2026-05-01
 
+- Bumped the bundled spelling library to `1.1` with a leak fix in the
+  Swing components. Issue #19. The third-party spelling-1.0 jar
+  registered an anonymous `SpellingCheckerChangeListener` on
+  `SpellingChecker.getSharedInstance()` for every `JSpellingTextField` /
+  `Area` / `ComboBox` constructed via `Utilities.createTokenizer`, but
+  never deregistered it. Entries are stored in a
+  `ArrayList<SoftReference<SCCL>>`, but each soft reference's referent
+  strongly retains the tokenizer, the `JTextComponent`, and (through
+  the parent hierarchy) the editor and DIY game component. `GC.run`
+  doesn't clear soft refs unless the JVM is under memory pressure, so
+  closed editors stayed reachable — on a real project-tree open / close-
+  all repro on the AHLCG plug-in, ~12 per-DIY `ScriptMonkey` engines
+  stayed pinned post-close. The 1.1 build is rebuilt from a forked
+  spelling source tree (decompiled); `Utilities.createTokenizer` now stores
+  the listener on the JTextComponent as the
+  `"SpellCheckChangeListener"` client property, `Utilities.deregister`
+  removes it, and `JSpellingTextField` / `JSpellingTextArea` override
+  `removeNotify` to call `deregister` on detach. `JSpellingComboBox`
+  inherits the cleanup via `SpellingComboBoxEditor extends
+  JSpellingTextField`. Verified on the same repro: post-close
+  `ScriptMonkey` count returns to baseline (1) instead of 13;
+  `NativeJavaMethod` / `MemberBox` / `EmbeddedSlotMap` deltas drop to
+  single digits over baseline.
 - Strip JS-proxy listeners from the editor's own `listenerList` on
   dispose so the per-DIY `ScriptMonkey` engine becomes reclaimable
   even when an unrelated retention path (e.g. the third-party spelling
