@@ -2,6 +2,27 @@
 
 ## 2026-04-30
 
+- Memoized `Settings.textStyle` `{...}` literal evaluation. Each
+  literal previously constructed a fresh `ScriptMonkey` (full
+  `SEScriptEngine` + bootstrap) just to evaluate a small expression
+  like `{ResourceKit.bodyFamily}`. Telemetry on a 12-component AHLCG
+  deck open showed 5403 calls to only 73 distinct source strings
+  (98.6% hit rate) and zero `Scriptable` results — every result was a
+  plain Java value (`String`, `Double`, `Float`). Caching the result
+  by source text is sound: only non-`Scriptable` results land in the
+  cache, so a `NativeObject` (which would carry a parent-scope
+  reference and re-introduce the issue #7 retention pattern) falls
+  through to the slow path. Combined with the compile cache:
+  - `ScriptMonkey` constructions per deck open: 5422 → **92** (59×).
+  - Total script evals: 38126 → **816** (47×).
+  - Style-literal-specific evals: 10806 → **146** (74×).
+  - Cumulative `ScriptMonkey` construction time: ~5400 ms → **293 ms**.
+  - JFR HashMap activity (downstream of slot-map churn): ~22% →
+    **<2%** of CPU samples.
+  - Hot CPU now dominated by `jj2000` JP2 image decode + Java2D
+    rendering — irreducible work for drawing card thumbnails.
+  - This is a tactical fix; the literal-evaluator path is removed
+    entirely in the planned JS-extraction project (phase 5.1).
 - Released per-DIY JavaScript engines on editor close (issue #14). After
   the issue #6 grace timer fix and the issue #7 retention sweep, the
   dominant remaining post-close retention was 10+ per-DIY Rhino engines
