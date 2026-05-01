@@ -2886,28 +2886,10 @@ public class DIY extends AbstractGameComponent implements Handler {
             if (b != null) {
                 b.clear();
             }
-            // Also drop user-defined properties on the Rhino top-level scope
-            // (where slot-map values like NativeArrays of DefaultPortraits live).
-            java.lang.reflect.Field tlField =
-                    Class.forName("ca.cgjennings.apps.arkham.plugins.engine.SEScriptEngine")
-                            .getDeclaredField("topLevel");
-            tlField.setAccessible(true);
-            Object tl = tlField.get(engine);
-            if (tl instanceof org.mozilla.javascript.ScriptableObject) {
-                org.mozilla.javascript.ScriptableObject so =
-                        (org.mozilla.javascript.ScriptableObject) tl;
-                Object[] ids = so.getAllIds();
-                for (Object id : ids) {
-                    try {
-                        if (id instanceof String) {
-                            so.delete((String) id);
-                        } else if (id instanceof Number) {
-                            so.delete(((Number) id).intValue());
-                        }
-                    } catch (Throwable ignored) {
-                    }
-                }
-            }
+            // The Rhino top-level scope is now shared and sealed across all
+            // engines, so per-engine cleanup there is both impossible and
+            // unnecessary: per-engine state lives only in the ENGINE_SCOPE
+            // bindings cleared above.
         } catch (Throwable t) {
             // best effort — the proxy-held engine's footprint just stays large
         }

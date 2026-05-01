@@ -2,6 +2,28 @@
 
 ## 2026-05-01
 
+- Share the Rhino standard-objects scope across all `SEScriptEngine`
+  instances. Issue #16. Each engine previously called
+  `new ImporterTopLevel(cx, false)` plus `Globals.defineIn` in its
+  constructor, building a fresh standard-objects scope and parallel
+  reflection cache (~80 wrapped Java classes / ~8k method wrappers /
+  ~10k `MemberBox` per scope). On a typical AHLCG-deck open the boot
+  path constructs ~48 engines, so most of those reflection wrappers
+  were dead-but-uncollected, inflating pre-GC counts ~10×. Factory
+  static init now builds a single `SHARED_TOP` once. Each engine
+  constructs an empty per-engine `ImporterTopLevel` whose prototype
+  is `SHARED_TOP`; the per-eval `BindingsScriptable` sets its
+  `parentScope` to that per-engine top so `ImporterTopLevel.realScope`
+  walks to the per-engine instance, keeping `importClass` /
+  `importPackage` mutations isolated per engine while standard
+  prototypes, `Globals` functions, and the `ClassCache` are inherited
+  via the prototype chain. Verified on the same repro: post-GC
+  `NativeJavaClass` reduced from 1,059 to 284 pre-GC (−73%);
+  `NativeJavaMethod` 59,289 → 8,324 (−86%); `MemberBox` 76,825 →
+  10,060 (−87%); `EmbeddedSlotMap` 80,832 → 19,049 (−76%).
+  `DIY.recycleScriptMonkey` no longer reflects against the engine's
+  `topLevel` to drop user-defined slots (per-engine state lives only
+  in the cleared `ENGINE_SCOPE` bindings).
 - Bumped the bundled spelling library to `1.1` with a leak fix in the
   Swing components. Issue #19. The third-party spelling-1.0 jar
   registered an anonymous `SpellingCheckerChangeListener` on

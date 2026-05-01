@@ -4,7 +4,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.script.ScriptEngine;
+import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.ImporterTopLevel;
 
 /**
  * A script engine factory that provides access to the Strange Rhino scripting
@@ -34,6 +36,25 @@ public final class SEScriptEngineFactory extends ScriptEngineFactoryBase {
             }
             globalContextFactory = new ContextFactoryImpl();
             ContextFactory.initGlobal(globalContextFactory);
+        }
+    }
+
+    // Shared standard-objects scope inherited by every SEScriptEngine's
+    // per-engine ImporterTopLevel. Holds the standard JS prototypes
+    // (Object.prototype, Array.prototype, ...), the Globals functions, and
+    // the ClassCache that wraps Java classes for JS access. Per-engine
+    // importClass / importPackage mutations do NOT land here — they go to the
+    // per-engine ImporterTopLevel that has SHARED_TOP as its prototype.
+    static final ImporterTopLevel SHARED_TOP;
+
+    static {
+        final Context cx = Context.enter();
+        try {
+            ImporterTopLevel global = new ImporterTopLevel(cx, false);
+            Globals.defineIn(global);
+            SHARED_TOP = global;
+        } finally {
+            Context.exit();
         }
     }
 

@@ -39,15 +39,15 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
         // wrap bindings created by AbstractScriptEngine
         Bindings raw = context.getBindings(ScriptContext.ENGINE_SCOPE);
         context.setBindings(new SettingBindings(raw), ScriptContext.ENGINE_SCOPE);
-
-        final Context cx = Context.enter();
-        try {
-            ImporterTopLevel global = new ImporterTopLevel(cx, false);
-            Globals.defineIn(global);
-            topLevel = global;
-        } finally {
-            Context.exit();
-        }
+        // Per-engine ImporterTopLevel sits between the per-eval BindingsScriptable
+        // and SEScriptEngineFactory.SHARED_TOP. It receives importClass / importPackage
+        // mutations (so per-engine name imports don't leak across engines), while
+        // standard objects, Globals, and the ClassCache are inherited from SHARED_TOP
+        // via the prototype chain — paying the per-engine setup cost only for an
+        // empty ImporterTopLevel rather than a full Context.initStandardObjects.
+        ImporterTopLevel engineTop = new ImporterTopLevel();
+        engineTop.setPrototype(SEScriptEngineFactory.SHARED_TOP);
+        this.topLevel = engineTop;
         if (ScriptEngineMetrics.ENABLED) {
             ScriptEngineMetrics.engineCreated(System.nanoTime() - start);
         }
@@ -190,6 +190,12 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
 
         BindingsScriptable newScope = new BindingsScriptable(scriptContext);
         newScope.setPrototype(topLevel);
+        // Setting the parent scope is required so that ImporterTopLevel.realScope
+        // can walk up to find a top-level ScriptableObject (the per-engine topLevel).
+        // Without this, getTopLevelScope returns the BindingsScriptable, which is
+        // not a ScriptableObject, and importClass falls back to writing on the
+        // shared SHARED_TOP — leaking import names across engines.
+        newScope.setParentScope(topLevel);
         // predefine some common names for the global scope:
         // Node.js "global", Web Worker "self", ECMAScript 2020 "globalThis"
         newScope.addConst("global", newScope);
