@@ -30,6 +30,7 @@ public abstract class AbstractInstalledPlugin extends InstalledBundleObject {
     private boolean collectedInfo;
     private String name;
     private String desc;
+    private ThemedIcon cachedIcon;
     private float version;
     private int type;
     private String prefix;
@@ -64,11 +65,12 @@ public abstract class AbstractInstalledPlugin extends InstalledBundleObject {
     @Override
     public ThemedIcon getIcon() {
         collectPluginInfo();
-        // For reloadable plug-ins, collectPluginInfo() probes the instance and
-        // then stops it again, leaving `plugin` null. The same is true for any
-        // disabled plug-in, which is never started by the loader. Fall through
-        // to the bundle/default icon path in those cases.
-        ThemedIcon icon = (plugin != null) ? plugin.getPluginIcon() : null;
+        // Prefer the live instance so a plug-in that swaps its icon at runtime
+        // is reflected immediately. When the instance is stopped (reloadable
+        // plug-ins after their info probe, or any disabled plug-in), use the
+        // snapshot captured during the probe. Otherwise fall through to the
+        // bundle/default icon path.
+        ThemedIcon icon = (plugin != null) ? plugin.getPluginIcon() : cachedIcon;
         if (icon == null) {
             PluginBundle bundle = getBundle();
             if (bundle != null) {
@@ -272,6 +274,7 @@ public abstract class AbstractInstalledPlugin extends InstalledBundleObject {
             desc = p.getPluginDescription();
             version = p.getPluginVersion();
             type = p.getPluginType();
+            cachedIcon = p.getPluginIcon();
 
             collectPluginInfo(p);
 

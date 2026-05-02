@@ -1,10 +1,14 @@
 package ca.cgjennings.apps.arkham.plugins;
 
 import ca.cgjennings.ui.theme.ThemedIcon;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AbstractInstalledPluginTest {
 
@@ -24,7 +28,30 @@ class AbstractInstalledPluginTest {
         assertNotNull(icon);
     }
 
-    public static final class NoopPlugin implements Plugin {
+    /**
+     * After the info probe stops a reloadable plug-in, getIcon() should
+     * still return the icon the plug-in supplied during the probe rather
+     * than the generic bundle fallback. This is what allows Plugin Manager
+     * to display a meaningful icon next to a disabled plug-in.
+     */
+    @Test
+    void getIconReturnsCapturedIconAfterProbe() throws Exception {
+        ThemedIcon expected = mock(ThemedIcon.class);
+        when(expected.small()).thenReturn(expected);
+        IconPlugin.iconForNextInstance = expected;
+
+        InstalledPlugin ip = new InstalledPlugin(null, IconPlugin.class.getName());
+        ip.getName();
+
+        assertSame(expected, ip.getIcon());
+    }
+
+    @AfterEach
+    void clearIconHandoff() {
+        IconPlugin.iconForNextInstance = null;
+    }
+
+    public static class NoopPlugin implements Plugin {
 
         @Override
         public boolean initializePlugin(PluginContext context) {
@@ -77,6 +104,17 @@ class AbstractInstalledPluginTest {
         @Override
         public String getDefaultAcceleratorKey() {
             return null;
+        }
+    }
+
+    public static final class IconPlugin extends NoopPlugin {
+
+        static ThemedIcon iconForNextInstance;
+        private final ThemedIcon icon = iconForNextInstance;
+
+        @Override
+        public ThemedIcon getPluginIcon() {
+            return icon;
         }
     }
 }
