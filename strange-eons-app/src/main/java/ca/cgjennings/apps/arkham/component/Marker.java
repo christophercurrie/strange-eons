@@ -134,6 +134,8 @@ public final class Marker extends AbstractGameComponent {
             throw new NullPointerException("sil");
         }
         if (!stencilKey.equals(sil.getKey())) {
+            String oldStencilKey = stencilKey;
+            double oldBleedMargin = bleedMargin;
             stencilKey = sil.getKey();
             stencil = sil.getStencil();
             cachedClipStencil = null;
@@ -148,6 +150,8 @@ public final class Marker extends AbstractGameComponent {
             }
             markChanged(0);
             markChanged(1);
+            firePropertyChange("stencilKey", oldStencilKey, stencilKey);
+            firePropertyChange("bleedMargin", oldBleedMargin, bleedMargin);
         }
     }
 
@@ -287,8 +291,10 @@ public final class Marker extends AbstractGameComponent {
 
     public void setFrontText(String frontText) {
         if (!this.frontText.equals(frontText)) {
+            String oldFrontText = this.frontText;
             this.frontText = frontText;
             markChanged(0);
+            firePropertyChange("frontText", oldFrontText, frontText);
         }
     }
 
@@ -298,8 +304,10 @@ public final class Marker extends AbstractGameComponent {
 
     public void setBackText(String backText) {
         if (!this.backText.equals(backText)) {
+            String oldBackText = this.backText;
             this.backText = backText;
             markChanged(1);
+            firePropertyChange("backText", oldBackText, backText);
         }
     }
 
@@ -541,6 +549,8 @@ public final class Marker extends AbstractGameComponent {
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        // PropertyChangeSupport in AbstractGameComponent is transient and lazily
+        // allocated on first listener add, so it needs no restoration here.
         int version = in.readInt();
 
         setNameImpl((String) in.readObject());

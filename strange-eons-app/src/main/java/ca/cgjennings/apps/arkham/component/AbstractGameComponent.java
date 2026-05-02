@@ -5,6 +5,8 @@ import ca.cgjennings.apps.arkham.sheet.UndecoratedCardBack;
 import ca.cgjennings.graphics.ImageUtilities;
 import gamedata.Expansion;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -29,6 +31,7 @@ public abstract class AbstractGameComponent implements GameComponent {
     private transient boolean hasUnsavedChanges;
     @SuppressWarnings("rawtypes")
     protected transient Sheet[] sheets;
+    private transient PropertyChangeSupport changeSupport;
 
     public AbstractGameComponent() {
         coreCheck();
@@ -58,6 +61,7 @@ public abstract class AbstractGameComponent implements GameComponent {
             throw new NullPointerException("name");
         }
         if (!this.name.equals(name)) {
+            String oldName = this.name;
             this.name = name;
             @SuppressWarnings("rawtypes")
             Sheet[] sheets = getSheets();
@@ -71,6 +75,7 @@ public abstract class AbstractGameComponent implements GameComponent {
                 }
             }
             markUnsavedChanges();
+            firePropertyChange("name", oldName, name);
         }
     }
 
@@ -128,8 +133,10 @@ public abstract class AbstractGameComponent implements GameComponent {
             throw new NullPointerException("comment");
         }
         if (!this.comments.equals(comment)) {
+            String oldComment = this.comments;
             this.comments = comment;
             markUnsavedChanges();
+            firePropertyChange("comment", oldComment, comment);
         }
     }
 
@@ -262,6 +269,93 @@ public abstract class AbstractGameComponent implements GameComponent {
     @Override
     public void markSaved() {
         hasUnsavedChanges = false;
+    }
+
+    /**
+     * Adds a listener that will be notified whenever a bound property of this
+     * component changes. Property names match the JavaBean-style names used by
+     * the corresponding setters (e.g. {@code "name"}, {@code "comment"}).
+     *
+     * <p>Events are fired synchronously on the thread that invoked the
+     * mutating setter. Listeners that need to run on a particular thread
+     * must marshal themselves.
+     *
+     * @param listener the listener to add; ignored if {@code null}
+     */
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        pcs().addPropertyChangeListener(listener);
+    }
+
+    /**
+     * Adds a listener that will be notified only when the named property
+     * changes. See {@link #addPropertyChangeListener(PropertyChangeListener)}
+     * for threading notes.
+     *
+     * @param propertyName the property of interest
+     * @param listener     the listener to add; ignored if {@code null}
+     */
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        pcs().addPropertyChangeListener(propertyName, listener);
+    }
+
+    /**
+     * Removes a previously registered listener. Has no effect if no listeners
+     * were ever attached or if the listener is not currently registered.
+     *
+     * @param listener the listener to remove; ignored if {@code null}
+     */
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        if (changeSupport != null) {
+            changeSupport.removePropertyChangeListener(listener);
+        }
+    }
+
+    /**
+     * Removes a property-scoped listener. Has no effect if no listeners were
+     * ever attached or if the listener is not currently registered for the
+     * named property.
+     *
+     * @param propertyName the property the listener was registered against
+     * @param listener     the listener to remove; ignored if {@code null}
+     */
+    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        if (changeSupport != null) {
+            changeSupport.removePropertyChangeListener(propertyName, listener);
+        }
+    }
+
+    /**
+     * Fires a property change to registered listeners. No-op when no listener
+     * has ever been attached, so subclasses may call this unconditionally
+     * without paying for {@code PropertyChangeSupport} allocation in the
+     * common script-driven or deserialized cases.
+     */
+    protected final void firePropertyChange(String propertyName, Object oldValue, Object newValue) {
+        PropertyChangeSupport pcs = changeSupport;
+        if (pcs != null) {
+            pcs.firePropertyChange(propertyName, oldValue, newValue);
+        }
+    }
+
+    /**
+     * Fires a primitive {@code double} property change. The equality guard is
+     * explicit because {@code PropertyChangeSupport} would autobox both values
+     * before comparing them.
+     */
+    protected final void firePropertyChange(String propertyName, double oldValue, double newValue) {
+        if (Double.compare(oldValue, newValue) != 0) {
+            PropertyChangeSupport pcs = changeSupport;
+            if (pcs != null) {
+                pcs.firePropertyChange(propertyName, oldValue, newValue);
+            }
+        }
+    }
+
+    private synchronized PropertyChangeSupport pcs() {
+        if (changeSupport == null) {
+            changeSupport = new PropertyChangeSupport(this);
+        }
+        return changeSupport;
     }
 
     @Override
