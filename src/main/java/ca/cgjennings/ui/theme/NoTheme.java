@@ -36,6 +36,14 @@ public class NoTheme extends Theme {
 
     @Override
     public void modifyManagerDefaults(UIDefaults defaults) {
+        // Drop the hard-coded SE chrome overrides so the L&F's own colors
+        // come through (project tree header, sidepanel titles, editor tab
+        // background). Legacy themes that rely on them are untouched.
+        defaults.put(Theme.PROJECT_HEADER_BACKGROUND, null);
+        defaults.put(Theme.PROJECT_HEADER_FOREGROUND, null);
+        defaults.put(Theme.SIDEPANEL_TITLE_BACKGROUND, null);
+        defaults.put(Theme.SIDEPANEL_TITLE_FOREGROUND, null);
+        defaults.put(Theme.EDITOR_TAB_BACKGROUND, null);
     }
 
     @Override

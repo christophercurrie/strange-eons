@@ -46,6 +46,15 @@ abstract class FlatLafTheme extends Theme {
 
     @Override
     public void modifyManagerDefaults(UIDefaults defaults) {
+        // ThemeInstaller seeds these SE-specific keys with hard-coded
+        // colors (black project header, blue editor-tab background, etc.).
+        // Clear them so the project tree header and the Properties/Notes
+        // tab pane fall through to FlatLaf's natural chrome.
+        defaults.put(Theme.PROJECT_HEADER_BACKGROUND, null);
+        defaults.put(Theme.PROJECT_HEADER_FOREGROUND, null);
+        defaults.put(Theme.SIDEPANEL_TITLE_BACKGROUND, null);
+        defaults.put(Theme.SIDEPANEL_TITLE_FOREGROUND, null);
+        defaults.put(Theme.EDITOR_TAB_BACKGROUND, null);
     }
 
     @Override
