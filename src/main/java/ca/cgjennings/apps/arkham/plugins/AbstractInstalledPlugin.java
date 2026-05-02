@@ -64,7 +64,11 @@ public abstract class AbstractInstalledPlugin extends InstalledBundleObject {
     @Override
     public ThemedIcon getIcon() {
         collectPluginInfo();
-        ThemedIcon icon = plugin.getPluginIcon();
+        // For reloadable plug-ins, collectPluginInfo() probes the instance and
+        // then stops it again, leaving `plugin` null. The same is true for any
+        // disabled plug-in, which is never started by the loader. Fall through
+        // to the bundle/default icon path in those cases.
+        ThemedIcon icon = (plugin != null) ? plugin.getPluginIcon() : null;
         if (icon == null) {
             PluginBundle bundle = getBundle();
             if (bundle != null) {
