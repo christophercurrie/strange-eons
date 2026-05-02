@@ -405,6 +405,15 @@ public class BundleInstaller {
             } catch (Exception e) {
                 StrangeEons.log.log(Level.SEVERE, "native theme not available", e);
             }
+            //  - add FlatLaf-bundled themes (light/dark + IntelliJ/Darcula)
+            try {
+                installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.FlatLightTheme.class.getName()));
+                installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.FlatDarkTheme.class.getName()));
+                installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.FlatIntelliJTheme.class.getName()));
+                installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.FlatDarculaTheme.class.getName()));
+            } catch (Exception e) {
+                StrangeEons.log.log(Level.SEVERE, "flatlaf themes not available", e);
+            }
             //  - add no-op theme that leaves Swing's default L&F in place
             try {
                 installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.NoTheme.class.getName()));
