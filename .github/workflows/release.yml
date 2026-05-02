@@ -1,8 +1,7 @@
 name: Release
 
 # Triggered by pushing a tag matching v<major>.<minor>.<patch>[-<type>]
-# (e.g., v3.5.0, v3.5.0-alpha, v3.5.0-beta1). workflow_dispatch lets us
-# rehearse the workflow without cutting a real tag.
+# (e.g., v3.5.0, v3.5.0-alpha, v3.5.0-beta1).
 #
 # This workflow only builds installers and publishes them as GitHub Release
 # assets. The strange-eons-registry repo's hourly build-catalog workflow
@@ -13,12 +12,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to build (e.g. 3.5.0-test1). For dispatch only; tag pushes use the tag name.'
-        required: true
-        default: '3.5.0-test1'
 
 permissions:
   contents: write
@@ -45,11 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            RAW="${{ inputs.version }}"
-          else
-            RAW="${GITHUB_REF#refs/tags/v}"
-          fi
+          RAW="${GITHUB_REF#refs/tags/v}"
           if [[ ! "$RAW" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
             echo "::error::Version '$RAW' does not match v<major>.<minor>.<patch>[-<type>]"
             exit 1
@@ -159,6 +148,7 @@ jobs:
   release:
     needs: [parse-version, build]
     runs-on: ubuntu-latest
+    environment: release
     steps:
       - name: Download all installer artifacts
         uses: actions/download-artifact@v8
