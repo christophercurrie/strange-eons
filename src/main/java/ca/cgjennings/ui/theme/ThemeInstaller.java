@@ -13,7 +13,6 @@ import java.awt.EventQueue;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Objects;
 import java.util.logging.Level;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -149,6 +148,10 @@ public class ThemeInstaller {
 
     private static Theme instantiateTheme() {
         Theme theme;
+        if (StrangeEons.getApplication() != null
+                && StrangeEons.getApplication().getCommandLineArguments().xDisableTheme) {
+            return new NoTheme();
+        }
         String themeClass = Settings.getShared().get(KEY_THEME_CLASS);;
         if (Settings.getShared().getYesNo(KEY_AUTO_DARK)) {
             if (new DarkModeDetector().detect()) {
@@ -226,10 +229,21 @@ public class ThemeInstaller {
                 UIManager.setLookAndFeel(laf);
             }
         } else {
-            laf = Objects.requireNonNull(theme.createLookAndFeelInstance(), "theme returned null look and feel instance");
-            theme.modifyLookAndFeelDefaults(laf.getDefaults());
-            theme.modifyLookAndFeel(laf);
-            UIManager.setLookAndFeel(laf);
+            laf = theme.createLookAndFeelInstance();
+            if (laf != null) {
+                theme.modifyLookAndFeelDefaults(laf.getDefaults());
+                theme.modifyLookAndFeel(laf);
+                UIManager.setLookAndFeel(laf);
+            } else {
+                // No-theme path: leave the current L&F untouched (whatever
+                // Swing initialized with), but still let the theme see the
+                // active L&F's defaults table.
+                LookAndFeel current = UIManager.getLookAndFeel();
+                theme.modifyLookAndFeelDefaults(UIManager.getLookAndFeelDefaults());
+                if (current != null) {
+                    theme.modifyLookAndFeel(current);
+                }
+            }
         }
 
         installStrangeEonsUIFallbackDefaults(theme);

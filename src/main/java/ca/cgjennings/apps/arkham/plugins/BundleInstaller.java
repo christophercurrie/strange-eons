@@ -405,6 +405,12 @@ public class BundleInstaller {
             } catch (Exception e) {
                 StrangeEons.log.log(Level.SEVERE, "native theme not available", e);
             }
+            //  - add no-op theme that leaves Swing's default L&F in place
+            try {
+                installedThemes.add(new InstalledTheme(null, ca.cgjennings.ui.theme.NoTheme.class.getName()));
+            } catch (Exception e) {
+                StrangeEons.log.log(Level.SEVERE, "no-theme entry not available", e);
+            }
         }
 
         // Discover any theme bundles added since the last call, and add them

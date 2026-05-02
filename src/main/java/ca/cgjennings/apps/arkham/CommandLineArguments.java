@@ -108,6 +108,16 @@ public class CommandLineArguments implements Cloneable {
     /**
      * Non-standard development option.
      * <p>
+     * Forces the application to install
+     * {@link ca.cgjennings.ui.theme.NoTheme}, leaving the look and feel at
+     * whatever Swing initialized with and bypassing any theme selected via
+     * the {@code theme} setting.
+     */
+    public boolean xDisableTheme = false;
+
+    /**
+     * Non-standard development option.
+     * <p>
      * This option causes an exception to be thrown during startup. It is used
      * to test how {@link ErrorDialog} handles uncaught startup exceptions.
      */
@@ -311,6 +321,7 @@ public class CommandLineArguments implements Cloneable {
                     + "  --xDisableFileRestore     do not re-open the last session's files\n"
                     + "  --xDisablePluginLoading   do not load plug-ins (except test bundles)\n"
                     + "  --xDisableJreCheck        do not check/enforce JRE version at startup\n"
+                    + "  --xDisableTheme           skip theme install; use Swing's default L&F\n"
                     + "\n"
                     + "  Graphics options:\n"
                     + "  --xAAText                 force method of antialiasing onscreen text:\n"
