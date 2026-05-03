@@ -56,6 +56,15 @@ public class TchoTchoTheme extends Theme {
 
     @Override
     public void modifyManagerDefaults(UIDefaults defaults) {
+        // Clear the SE chrome overrides seeded by ThemeInstaller so the
+        // host OS's system L&F renders the project tree header, sidepanel
+        // titles, and Properties/Notes tab pane in its native palette.
+        defaults.put(PROJECT_HEADER_BACKGROUND, null);
+        defaults.put(PROJECT_HEADER_FOREGROUND, null);
+        defaults.put(SIDEPANEL_TITLE_BACKGROUND, null);
+        defaults.put(SIDEPANEL_TITLE_FOREGROUND, null);
+        defaults.put(EDITOR_TAB_BACKGROUND, null);
+
         if (PlatformSupport.PLATFORM_IS_MAC) {
             patchOSX();
         } else if (PlatformSupport.PLATFORM_IS_WINDOWS) {
