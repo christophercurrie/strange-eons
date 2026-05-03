@@ -270,11 +270,21 @@
                     </plugin>
                     <plugin>
                         <!--
-                            maven-shade-plugin renames the pre-shade jar to
-                            original-strange-eons.jar in the same output dir. If
-                            left, jpackage's input scan picks it up and bundles
-                            both jars in the installer. Delete it once shade has
-                            run so only the shaded jar reaches jpackage.
+                            Two executions, both bound to phase "package" and
+                            within the same plugin so Maven runs them in the
+                            order declared below (single-profile = no
+                            cross-profile ordering ambiguity):
+                              1) remove-unshaded-original — deletes the pre-
+                                 shade jar that maven-shade-plugin leaves as
+                                 original-*.jar; without this, jpackage would
+                                 bundle both jars in the installer.
+                              2) sign-jar-natives — signs Mach-O dylibs
+                                 embedded inside strange-eons.jar (FlatLaF
+                                 natives) so Apple notarization stops
+                                 rejecting them. The script no-ops on non-Mac
+                                 hosts and when the signing identity property
+                                 is empty, so this execution is safe to run
+                                 unconditionally on every platform.
                         -->
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-antrun-plugin</artifactId>
@@ -289,6 +299,20 @@
                                         <delete>
                                             <fileset dir="${project.basedir}/deployment/assembled" includes="original-*.jar" erroronmissingdir="false"/>
                                         </delete>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>sign-jar-natives</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <exec executable="${project.basedir}/deployment/scripts/sign-jar-natives.sh" failonerror="true">
+                                            <arg value="${project.basedir}/deployment/assembled/strange-eons.jar"/>
+                                            <arg value="${strange-eons.apple.signing.identity}"/>
+                                            <arg value="${project.basedir}/deployment/entitlements.plist"/>
+                                        </exec>
                                     </target>
                                 </configuration>
                             </execution>
@@ -420,6 +444,45 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+            Layered profile: when -Dstrange-eons.apple.signing.identity=<fragment>
+            is passed, this profile auto-activates and merges signing options
+            into the jpackage-mac plugin configuration above. With no property
+            set, the jpackage-mac profile alone produces an unsigned .dmg as
+            before. Property name is namespaced to avoid colliding with anything
+            a user might define in ~/.m2/settings.xml.
+
+            The fragment passed here is just the "team or user name portion"
+            (e.g. "Jane Doe"); jpackage prepends "Developer ID Application: "
+            internally before searching the keychain. The CI side strips the
+            full identity stored in the APPLE_SIGNING_IDENTITY secret down to
+            this fragment in .github/workflows/release.yml ("Build native
+            installers" step) before passing it on the command line.
+        -->
+        <profile>
+            <id>jpackage-mac-sign</id>
+            <activation>
+                <property>
+                    <name>strange-eons.apple.signing.identity</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.7.4</version>
+                        <configuration>
+                            <macSign>true</macSign>
+                            <macSigningKeyUserName>${strange-eons.apple.signing.identity}</macSigningKeyUserName>
+                            <macEntitlements>${project.basedir}/deployment/entitlements.plist</macEntitlements>
+                            <macPackageSigningPrefix>ca.cgjennings.strange-eons.</macPackageSigningPrefix>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -583,5 +646,16 @@
         <app.version>${app.major}.${app.minor}.${app.patch}</app.version>
         <app.vendor>Christopher Currie</app.vendor>
         <app.copyright>Copyright Christopher Jennings and contributors</app.copyright>
+        <!--
+            Apple Developer ID signing identity (user/team name fragment) is
+            intentionally NOT declared with a default value here. A profile
+            elsewhere auto-activates on the *presence* of the property, and
+            declaring a default — even an empty string — would activate the
+            profile permanently. Pass -Dstrange-eons.apple.signing.identity=
+            <fragment> on the command line to enable signing of the bundled
+            .app and the natives embedded in strange-eons.jar (FlatLaF
+            dylibs, etc.). See the jpackage-mac-sign profile and the
+            sign-jar-natives antrun execution in the deploy profile.
+        -->
     </properties>
 </project>
