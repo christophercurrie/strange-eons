@@ -157,9 +157,12 @@
                                 <!--
                                     Java 17+ enforces strong module encapsulation by default;
                                     a few helpers still reach into javax.swing.table internals.
-                                    Mirror this list into the jpackage java-options when packaging.
+                                    FlatLaf also loads a native library for window decorations
+                                    and DPI, which Java 22+ gates behind native-access opt-in.
+                                    Mirror both flags into the jpackage java-options when packaging.
                                 -->
                                 <argument>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</argument>
+                                <argument>--enable-native-access=ALL-UNNAMED</argument>
                                 <argument>-javaagent:lib/local/jar-loader/1.0/jar-loader-1.0.jar</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
@@ -330,6 +333,7 @@
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>
                                 <option>-Xss1m</option>
@@ -403,6 +407,7 @@
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>
                                 <option>-Xss1m</option>
@@ -447,6 +452,7 @@
                             <javaOptions>
                                 <option>-javaagent:$APPDIR/strange-eons.jar</option>
                                 <option>--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                                 <option>-Xmx4g</option>
                                 <option>-Xms1g</option>
                                 <option>-Xss1m</option>
