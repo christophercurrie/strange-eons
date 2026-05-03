@@ -450,8 +450,8 @@ public class CatalogIDListPanel extends javax.swing.JPanel {
         return s.isEmpty() ? null : s; // defensive, should not be empty
     }
 
-    private Icon NOT_INSTALLED = ResourceKit.getIcon("catalog/not-installed.png");
-    private Icon MATCHES_INSTALLED = ResourceKit.getIcon("catalog/up-to-date.png");
-    private Icon INSTALLED_NEWER = ResourceKit.getIcon("catalog/update-available.png");
-    private Icon ROOT_NEWER = ResourceKit.getIcon("catalog/installed-is-newer.png");
+    private Icon NOT_INSTALLED = ResourceKit.getIcon("cat-not-installed");
+    private Icon MATCHES_INSTALLED = ResourceKit.getIcon("cat-up-to-date");
+    private Icon INSTALLED_NEWER = ResourceKit.getIcon("cat-update-available");
+    private Icon ROOT_NEWER = ResourceKit.getIcon("cat-installed-is-newer");
 }

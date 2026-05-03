@@ -64,12 +64,12 @@ class UpdateMessage {
                 getDownloadURI(), applicationUpdate
         );
         JLinkLabel updateLink = createUpdateLink(
-                "catalog/update-available.png",
+                "cat-update-available",
                 string("core-l-plugin-update"), string("core-l-plugin-update-false"),
                 null, pluginUpdate
         );
         JLinkLabel newLink = createUpdateLink(
-                "catalog/not-installed-new.png",
+                "cat-not-installed-new",
                 string("core-l-new-plugins"), string("core-l-new-plugins-false"),
                 null, newPlugins
         );
