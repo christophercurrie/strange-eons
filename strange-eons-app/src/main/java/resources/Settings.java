@@ -113,7 +113,8 @@ import static resources.Language.string;
  * @author Chris Jennings <https://cgjennings.ca/contact>
  * @since 0.95
  */
-public class Settings implements Serializable, Iterable<String> {
+public class Settings implements Serializable, Iterable<String>,
+        org.strangeeons.plugins.SettingsReadWrite {
 
     private static final long serialVersionUID = 35461387643185L;
     private HashMap<String, String> p;

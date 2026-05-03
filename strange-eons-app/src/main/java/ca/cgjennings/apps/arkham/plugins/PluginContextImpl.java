@@ -8,7 +8,7 @@ import resources.Settings;
  * @author Chris Jennings <https://cgjennings.ca/contact>
  * @since 3.0
  */
-final class PluginContextImpl implements PluginContext {
+final class PluginContextImpl implements PluginContext, org.strangeeons.plugins.PluginContext {
 
     private final AbstractInstalledPlugin installedPlugin;
     private final Plugin plugin;
