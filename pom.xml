@@ -315,7 +315,8 @@
                                 <goals><goal>run</goal></goals>
                                 <configuration>
                                     <target>
-                                        <exec executable="${project.basedir}/deployment/scripts/sign-jar-natives.sh" failonerror="true">
+                                        <exec executable="${project.basedir}/deployment/scripts/sign-jar-natives.sh"
+                                              failonerror="true" osfamily="unix">
                                             <arg value="${project.basedir}/deployment/assembled/strange-eons.jar"/>
                                             <arg value="${strange-eons.apple.signing.identity}"/>
                                             <arg value="${project.basedir}/deployment/entitlements.plist"/>
