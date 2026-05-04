@@ -273,14 +273,18 @@
                     </plugin>
                     <plugin>
                         <!--
+                            
+
                             Two executions, both bound to phase "package" and
                             within the same plugin so Maven runs them in the
                             order declared below (single-profile = no
                             cross-profile ordering ambiguity):
-                              1) remove-unshaded-original — deletes the pre-
-                                 shade jar that maven-shade-plugin leaves as
-                                 original-*.jar; without this, jpackage would
-                                 bundle both jars in the installer.
+                              1) remove-unshaded-original — maven-shade-plugin 
+                                 renames the pre-shade jar to original-strange-eons.jar 
+                                 in the same output dir. If left, jpackage's 
+                                 input scan picks it up and bundles both jars 
+                                 in the installer. Delete it once shade has
+                                 run so only the shaded jar reaches jpackage.
                               2) sign-jar-natives — signs Mach-O dylibs
                                  embedded inside strange-eons.jar (FlatLaF
                                  natives) so Apple notarization stops
@@ -652,16 +656,5 @@
         <app.version>${app.major}.${app.minor}.${app.patch}</app.version>
         <app.vendor>Christopher Currie</app.vendor>
         <app.copyright>Copyright Christopher Jennings and contributors</app.copyright>
-        <!--
-            Apple Developer ID signing identity (user/team name fragment) is
-            intentionally NOT declared with a default value here. A profile
-            elsewhere auto-activates on the *presence* of the property, and
-            declaring a default — even an empty string — would activate the
-            profile permanently. Pass -Dstrange-eons.apple.signing.identity=
-            <fragment> on the command line to enable signing of the bundled
-            .app and the natives embedded in strange-eons.jar (FlatLaF
-            dylibs, etc.). See the jpackage-mac-sign profile and the
-            sign-jar-natives antrun execution in the deploy profile.
-        -->
     </properties>
 </project>
