@@ -11,7 +11,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -79,6 +79,8 @@ jobs:
 
   build:
     needs: parse-version
+    environment:
+      name: release
     strategy:
       fail-fast: false
       matrix:
@@ -94,25 +96,25 @@ jobs:
           - os: macos-15-intel
             profile: jpackage-mac
             artifact: strange-eons-macos-x64
-            extra_setup: ''
-            mvn_prefix: ''
+            extra_setup: ""
+            mvn_prefix: ""
           - os: macos-15
             profile: jpackage-mac
             artifact: strange-eons-macos-aarch64
-            extra_setup: ''
-            mvn_prefix: ''
+            extra_setup: ""
+            mvn_prefix: ""
           - os: windows-latest
             profile: jpackage-win
             artifact: strange-eons-windows
-            extra_setup: ''
-            mvn_prefix: ''
+            extra_setup: ""
+            mvn_prefix: ""
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: "25"
+          distribution: "temurin"
           cache: maven
       - name: Extra setup for runner
         if: matrix.extra_setup != ''
