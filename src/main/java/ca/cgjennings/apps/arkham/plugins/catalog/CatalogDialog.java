@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
@@ -98,6 +99,8 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
      */
     private final Catalog placeholderCatalog = new Catalog();
     private Catalog catalog = placeholderCatalog;
+    private final List<URL> sources = new ArrayList<>();
+    private String pendingPersistURL;
     private boolean doneInit = false;
 
     /**
@@ -275,10 +278,18 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
         DefaultComboBoxModel<String> urlModel = new DefaultComboBoxModel<>();
         Settings s = Settings.getUser();
         for (int i = 1; s.get("catalog-url-" + i) != null; ++i) {
-            urlModel.addElement(s.get("catalog-url-" + i));
+            String urlString = s.get("catalog-url-" + i);
+            urlModel.addElement(urlString);
+            try {
+                sources.add(new URL(urlString));
+            } catch (MalformedURLException ex) {
+                StrangeEons.log.log(Level.WARNING, "ignoring malformed catalog-url-" + i + ": " + urlString, ex);
+            }
         }
         urlCombo.setModel(urlModel);
-        urlCombo.setSelectedIndex(0);
+        if (urlModel.getSize() > 0) {
+            urlCombo.setSelectedIndex(0);
+        }
 
         Insets ri = restartWarnLabel.getInsets();
         WARN_ACTIVE_BORDER = restartWarnLabel.getBorder();
@@ -329,10 +340,11 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
         // download default catalog
         doneInit = true;
         if (defaultCatalogToOpen != null) {
+            sources.clear();
+            sources.add(defaultCatalogToOpen);
             urlCombo.setSelectedItem(defaultCatalogToOpen.toExternalForm());
-        } else {
-            urlComboActionPerformed(null);
         }
+        mergeAllSources(allowCacheHint);
 
         if (!s.applyWindowSettings("plugin-catalog", this)) {
             setLocationRelativeTo(StrangeEons.getWindow());
@@ -445,21 +457,22 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
     private boolean allowCacheHint;
     private TableRowSorter<Model> rowSorter;
 
-    private synchronized void downloadCatalog(final URL location, final boolean allowCache) {
+    private synchronized void mergeAllSources(final boolean allowCache) {
         final Catalog oldCatalog = catalog == placeholderCatalog ? null : catalog;
         Thread checkThread = downloadThread;
         if (checkThread != null) {
             checkThread.interrupt();
             EventQueue.invokeLater(() -> {
-                downloadCatalog(location, allowCache);
+                mergeAllSources(allowCache);
             });
             return;
         }
+        final List<URL> snapshot = new ArrayList<>(sources);
         dlProgress.setIndeterminate(true);
         showPanel("download");
         downloadThread = new Thread(() -> {
             try {
-                final Catalog c = new Catalog(location, allowCache, dlProgress);
+                final MergedCatalog c = MergedCatalog.merge(snapshot, allowCache, dlProgress);
                 EventQueue.invokeLater(() -> {
                     catalog = c;
                     catalogLoaded();
@@ -468,6 +481,7 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
             } catch (final Throwable e) {
                 EventQueue.invokeLater(() -> {
                     catalog = placeholderCatalog;
+                    pendingPersistURL = null;
                     // make sure any selection in the table is cleared:
                     // although the table isn't visible, there might be
                     // a selection so you could install plug-ins you
@@ -496,6 +510,15 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
         downloadThread.start();
     }
     private volatile Thread downloadThread = null;
+
+    private void addSourceAndMerge(URL url) {
+        if (sources.contains(url)) {
+            return;
+        }
+        sources.add(url);
+        pendingPersistURL = url.toExternalForm();
+        mergeAllSources(true);
+    }
 
     private void catalogLoaded() {
         table.clearSelection();
@@ -567,36 +590,31 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
         if (sel < 0 && table.getRowCount() > 0) {
             sel = 0;
         }
-        String targetURL = urlCombo.getSelectedItem().toString().trim();
-        try {
-            ((HTMLDocument) descPane.getDocument()).setBase(new URL(targetURL + "catalog.txt"));
-        } catch (MalformedURLException mue) {
-            StrangeEons.log.log(Level.SEVERE, "unexpected", mue);
-        }
         showListing(sel);
 
         updateDownloadButtonText();
         showPanel("catalog");
         dlProgress.setIndeterminate(true);
 
-        // check if this is a URL that isn't in the history
-        // now that we know it works, we will add it to the list
-        // load catalog URLs from user settings
-        if (!targetURL.isEmpty()) {
-            boolean found = false;
+        // a typed-in URL gets persisted to settings only after a successful
+        // merge that included it, matching the original "after success" rule
+        if (pendingPersistURL != null && !pendingPersistURL.isEmpty()) {
+            String typed = pendingPersistURL;
+            pendingPersistURL = null;
             Settings s = Settings.getUser();
+            boolean found = false;
             int settingIndex;
             for (settingIndex = 1; s.get("catalog-url-" + settingIndex) != null; ++settingIndex) {
                 String history = s.get("catalog-url-" + settingIndex);
-                if (history.equalsIgnoreCase(targetURL)) {
+                if (history.equalsIgnoreCase(typed)) {
                     found = true;
                     break;
                 }
             }
             if (!found) {
                 DefaultComboBoxModel<String> urlModel = (DefaultComboBoxModel<String>) urlCombo.getModel();
-                urlModel.addElement(targetURL);
-                s.set("catalog-url-" + settingIndex, targetURL);
+                urlModel.addElement(typed);
+                s.set("catalog-url-" + settingIndex, typed);
             }
         }
     }
@@ -753,6 +771,20 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
     private void showListing(int n) {
         URL url = null;
         Listing li = n < 0 ? null : catalog.get(n);
+
+        URL listingBase = null;
+        if (li != null && catalog instanceof MergedCatalog) {
+            listingBase = ((MergedCatalog) catalog).getSourceForListing(n);
+        } else if (li != null) {
+            listingBase = catalog.getBaseURL();
+        }
+        if (listingBase != null) {
+            try {
+                ((HTMLDocument) descPane.getDocument()).setBase(new URL(listingBase, "catalog.txt"));
+            } catch (MalformedURLException mue) {
+                StrangeEons.log.log(Level.SEVERE, "unexpected", mue);
+            }
+        }
 
         if (li == null) {
             installStateLabel.setIcon(ICON_NOT_INSTALLED);
@@ -1408,21 +1440,8 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
                 return;
             }
 
-            // see declaration of lastLoadedCatalog, below, for an explanation
-            boolean allowCache = lastLoadedCatalog == null || !lastLoadedCatalog.equals(url);
-            if (!allowCacheHint) {
-                allowCache = false;
-                allowCacheHint = true;
-            }
-            lastLoadedCatalog = url;
-
-            downloadCatalog(url, allowCache);
+            addSourceAndMerge(url);
 	}//GEN-LAST:event_urlComboActionPerformed
-
-    // URL of last loaded catalog: this is used to control caching:
-    // if the same URL is loaded two or more times in a row, caches will
-    // not be allowed on the second and following loads.
-    private URL lastLoadedCatalog;
 
 	private void clearItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearItemActionPerformed
             if (catalog == null) {
@@ -1502,7 +1521,7 @@ public final class CatalogDialog extends javax.swing.JDialog implements Agnostic
 }//GEN-LAST:event_filterFieldActionPerformed
 
     private void retryBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_retryBtnActionPerformed
-        urlComboActionPerformed(null);
+        mergeAllSources(false);
     }//GEN-LAST:event_retryBtnActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
