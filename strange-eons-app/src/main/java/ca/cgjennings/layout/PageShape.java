@@ -17,7 +17,7 @@ import java.awt.geom.Rectangle2D;
  *
  * @author Chris Jennings <https://cgjennings.ca/contact>
  */
-public class PageShape {
+public class PageShape implements org.strangeeons.plugins.graphics.PageShape {
 
     /**
      * Return the narrowest (maximum) left edge inset between y1 and y2. y1 must

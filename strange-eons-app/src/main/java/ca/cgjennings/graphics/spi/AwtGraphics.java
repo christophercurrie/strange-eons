@@ -40,6 +40,17 @@ public final class AwtGraphics implements Graphics {
         this.g2 = Objects.requireNonNull(g2, "g2");
     }
 
+    /**
+     * Returns the underlying AWT {@code Graphics2D}. Framework
+     * code that needs to bridge legacy AWT-typed APIs into the new
+     * SPI surface uses this; plug-ins never see {@code AwtGraphics}
+     * directly and so cannot reach the underlying object through
+     * the SPI.
+     */
+    public Graphics2D graphics2D() {
+        return g2;
+    }
+
     // -- Shape primitives ----------------------------------------------------
 
     @Override

@@ -13,7 +13,7 @@ import java.util.Map.Entry;
  *
  * @author Chris Jennings <https://cgjennings.ca/contact>
  */
-public class TextStyle {
+public class TextStyle implements org.strangeeons.plugins.graphics.TextStyle {
 
     private HashMap<TextAttribute, Object> styles;
 

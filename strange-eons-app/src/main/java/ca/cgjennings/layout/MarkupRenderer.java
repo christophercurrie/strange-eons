@@ -83,7 +83,7 @@ import java.util.logging.Logger;
  *
  * @author Chris Jennings <https://cgjennings.ca/contact>
  */
-public class MarkupRenderer {
+public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRenderer {
 
     /**
      * The marked-up text to be printed.
@@ -2473,6 +2473,57 @@ public class MarkupRenderer {
         return "MarkupRenderer{alignment=" + getAlignment()
                 + ", defaultStyle=" + getDefaultStyle()
                 + '}';
+    }
+
+    // -- SPI overloads (org.strangeeons.plugins.graphics.MarkupRenderer) -----
+    //
+    // Adaptors that accept the toolkit-neutral SPI value types and delegate
+    // to the legacy AWT-typed methods. Plug-ins targeting the new SPI go
+    // through these; the legacy methods remain for existing call sites.
+
+    @Override
+    public void setDefaultStyle(org.strangeeons.plugins.graphics.TextStyle style) {
+        setDefaultStyle((TextStyle) style);
+    }
+
+    @Override
+    public void setStyleForTag(String tag, org.strangeeons.plugins.graphics.TextStyle style) {
+        setStyleForTag(tag, (TextStyle) style);
+    }
+
+    @Override
+    public void setPageShape(org.strangeeons.plugins.graphics.PageShape shape) {
+        setPageShape((PageShape) shape);
+    }
+
+    @Override
+    public double draw(org.strangeeons.plugins.graphics.Graphics g,
+                       org.strangeeons.plugins.graphics.Region region) {
+        return draw(unwrapGraphics(g), toRectangle2D(region));
+    }
+
+    @Override
+    public double drawAsSingleLine(org.strangeeons.plugins.graphics.Graphics g,
+                                   org.strangeeons.plugins.graphics.Region region) {
+        return drawAsSingleLine(unwrapGraphics(g), toRectangle2D(region));
+    }
+
+    @Override
+    public double measure(org.strangeeons.plugins.graphics.Graphics g,
+                          org.strangeeons.plugins.graphics.Region region) {
+        return measure(unwrapGraphics(g), toRectangle2D(region));
+    }
+
+    private static Graphics2D unwrapGraphics(org.strangeeons.plugins.graphics.Graphics g) {
+        if (g instanceof ca.cgjennings.graphics.spi.AwtGraphics awt) {
+            return awt.graphics2D();
+        }
+        throw new IllegalArgumentException(
+                "unsupported Graphics implementation: " + g.getClass().getName());
+    }
+
+    private static Rectangle2D toRectangle2D(org.strangeeons.plugins.graphics.Region r) {
+        return new Rectangle2D.Double(r.getX(), r.getY(), r.getWidth(), r.getHeight());
     }
 
     static final Logger log = Logger.getLogger(MarkupRenderer.class.getPackage().getName());
