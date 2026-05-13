@@ -324,11 +324,19 @@ public class DIY extends AbstractGameComponent implements Handler {
 
         if (!handlerScript.endsWith(".js")) {
             try {
-                // try to create the handler from a class
-                handler = (Handler) BundleInstaller.findClassAcrossBundles(handlerScript).getConstructor().newInstance();
+                Object instance = BundleInstaller.findClassAcrossBundles(handlerScript).getConstructor().newInstance();
+                if (instance instanceof Handler h) {
+                    handler = h;
+                } else if (instance instanceof org.strangeeons.plugins.conventional.ComponentHandler ch) {
+                    handler = new ca.cgjennings.apps.arkham.diy.spi.ComponentHandlerBridge(ch);
+                } else {
+                    throw new IOException("handler class does not implement Handler or ComponentHandler: " + handlerScript);
+                }
                 return;
             } catch (ClassNotFoundException ex) {
                 // doesn't exist, will try to load this as a script
+            } catch (IOException ex) {
+                throw ex;
             } catch (Exception ex) {
                 throw new IOException("failed to instantiate handler class " + handlerScript, ex);
             }
