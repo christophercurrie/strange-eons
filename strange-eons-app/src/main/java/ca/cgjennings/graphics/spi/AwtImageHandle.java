@@ -31,8 +31,13 @@ public final class AwtImageHandle implements ImageHandle {
         this.source = source;
     }
 
-    /** Returns the underlying AWT image. Package-private use only. */
-    BufferedImage image() {
+    /**
+     * Returns the underlying AWT image. Framework code that needs to
+     * bridge legacy AWT-typed APIs into the new SPI surface uses this;
+     * plug-ins see only the {@link ImageHandle} interface and so cannot
+     * reach the underlying object through the SPI.
+     */
+    public BufferedImage image() {
         return image;
     }
 

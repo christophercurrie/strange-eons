@@ -16,7 +16,7 @@ import java.util.EnumSet;
  * @author Chris Jennings <https://cgjennings.ca/contact>
  * @since 3.0
  */
-public interface Portrait {
+public interface Portrait extends org.strangeeons.plugins.component.Portrait {
 
     /**
      * Sets the image used by the portrait.The value of {@code resource} is an
@@ -233,4 +233,42 @@ public interface Portrait {
      * rotation.
      */
     public static final EnumSet<Feature> ROTATABLE_PORTRAIT_FEATURES = EnumSet.allOf(Feature.class);
+
+    // -- SPI bridges (org.strangeeons.plugins.component.Portrait) -----------
+    //
+    // Default implementations that surface the legacy AWT-typed accessors
+    // through the toolkit-neutral Portrait SPI. Direct implementors get
+    // these for free; AbstractPortrait subclasses likewise.
+
+    @Override
+    default org.strangeeons.plugins.graphics.ImageHandle getImageHandle() {
+        BufferedImage bi = getImage();
+        if (bi == null) {
+            return null;
+        }
+        return new ca.cgjennings.graphics.spi.AwtImageHandle(bi, getSource());
+    }
+
+    @Override
+    default void setImageHandle(org.strangeeons.plugins.graphics.ImageHandle handle) {
+        if (handle == null) {
+            setImage(null, null);
+            return;
+        }
+        if (handle instanceof ca.cgjennings.graphics.spi.AwtImageHandle awt) {
+            setImage(awt.getSource(), awt.image());
+            return;
+        }
+        throw new IllegalArgumentException(
+                "unsupported ImageHandle implementation: " + handle.getClass().getName());
+    }
+
+    @Override
+    default org.strangeeons.plugins.graphics.Region getClipRegion() {
+        Dimension d = getClipDimensions();
+        if (d == null) {
+            return null;
+        }
+        return new org.strangeeons.plugins.graphics.Region(0, 0, d.width, d.height);
+    }
 }
