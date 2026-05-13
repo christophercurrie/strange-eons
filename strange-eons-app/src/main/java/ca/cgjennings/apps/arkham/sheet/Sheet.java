@@ -1834,7 +1834,10 @@ public abstract class Sheet<G extends GameComponent> {
     public static final int ALIGN_TRAILING;
 
     static {
-        ComponentOrientation co = ComponentOrientation.getOrientation(Language.getGameLocale());
+        java.util.Locale loc = Language.getGameLocale();
+        ComponentOrientation co = loc == null
+                ? ComponentOrientation.LEFT_TO_RIGHT
+                : ComponentOrientation.getOrientation(loc);
         if (co.isLeftToRight()) {
             ALIGN_LEADING = -1;
             ALIGN_TRAILING = 1;

@@ -1505,7 +1505,9 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
     };
 
     static {
-        StrangeEons.getApplication().addPropertyChangeListener(StrangeEons.MARKUP_TARGET_PROPERTY, (PropertyChangeEvent evt) -> {
+        StrangeEons app = StrangeEons.getApplication();
+        if (app != null) {
+            app.addPropertyChangeListener(StrangeEons.MARKUP_TARGET_PROPERTY, (PropertyChangeEvent evt) -> {
             // Figure out if the new markup target is a text field
             // in a game component editor...
             final Object newTarget = evt.getNewValue();
@@ -1538,6 +1540,7 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
                 newTextField.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, TEXT_FIELD_FORWARD_TRAVERSAL_KEYS);
 //							newTextField.getKeymap().addActionForKeyStroke( KeyStroke.getKeyStroke( "ctrl TAB" ), FOCUS_NEXT_ACTION );
             }
-        });
+            });
+        }
     }
 }
