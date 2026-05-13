@@ -44,7 +44,7 @@ import resources.ResourceKit;
  * @author Chris Jennings <https://cgjennings.ca/contact>
  * @since 3.0
  */
-public class ClassMap implements Iterable<Entry> {
+public class ClassMap implements Iterable<Entry>, org.strangeeons.plugins.gamedata.ClassMap {
 
     /**
      * Creates a new class map that contains entries parsed from the specified

@@ -31,7 +31,7 @@ import resources.Settings;
  * @author Chris Jennings <https://cgjennings.ca/contact>
  * @since 3.0a14
  */
-public final class Expansion implements Comparable<Expansion>, IconProvider {
+public final class Expansion implements Comparable<Expansion>, IconProvider, org.strangeeons.plugins.gamedata.Expansion {
 
     private Game forGame;
     private final String code;

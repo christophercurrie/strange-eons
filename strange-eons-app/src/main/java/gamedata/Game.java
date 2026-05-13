@@ -32,7 +32,7 @@ import resources.Settings;
  *
  * @author Chris Jennings <https://cgjennings.ca/contact>
  */
-public final class Game implements Comparable<Game>, IconProvider {
+public final class Game implements Comparable<Game>, IconProvider, org.strangeeons.plugins.gamedata.Game {
 
     private String code;
     private String uiName;
