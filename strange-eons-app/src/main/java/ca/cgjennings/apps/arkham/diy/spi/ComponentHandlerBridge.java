@@ -37,10 +37,11 @@ import org.strangeeons.plugins.conventional.Face;
  * {@link DIY#getSettings()} on the DIY passed in by the framework
  * (and via {@link Face#getSettings()} during paint).
  *
- * <p>Editor wiring is not yet bridged: the legacy
- * {@code createInterface(DIY, DIYEditor)} dispatch is a no-op. Plug-ins
- * that need a Java-side editor will receive an editor SPI in a later
- * change.
+ * <p>Editor wiring: the legacy {@code createInterface(DIY, DIYEditor)}
+ * dispatch wraps the editor's tabbed pane in a
+ * {@link DIYEditorPanel} and passes it through the SPI. After the
+ * handler returns, the panel is attached to the editor as a custom
+ * tab containing the collected controls.
  */
 public final class ComponentHandlerBridge implements Handler {
 
@@ -97,7 +98,9 @@ public final class ComponentHandlerBridge implements Handler {
 
     @Override
     public void createInterface(DIY diy, DIYEditor editor) {
-        // Editor wiring is deferred; see class javadoc.
+        DIYEditorPanel panel = new DIYEditorPanel(editor.getTabbedPane());
+        delegate.createInterface(diy.getSettings(), panel);
+        panel.attach();
     }
 
     @Override
