@@ -1,16 +1,19 @@
 package org.strangeeons.plugins;
 
 import java.util.Set;
+import org.strangeeons.plugins.graphics.Font;
+import org.strangeeons.plugins.graphics.Paint;
+import org.strangeeons.plugins.graphics.Region;
 
 /**
  * Read access to a Strange Eons settings scope. Implemented by
  * {@code resources.Settings} and any future settings backings.
  *
  * <p>This Tier 1 surface is intentionally toolkit-agnostic: it exposes
- * only string-keyed primitive and string accessors. Typed accessors that
- * would force a reference to a specific UI toolkit (colours, regions,
- * images, fonts) will be added back in a toolkit-agnostic way as the
- * SPI's toolkit boundary is designed.
+ * only string-keyed primitive and string accessors. Typed accessors
+ * for the SPI value types ({@link Region}, {@link Paint},
+ * {@link Font}) are provided as default methods that parse the
+ * canonical settings-format string returned by {@link #get(String)}.
  *
  * @since 3.5
  */
@@ -68,4 +71,64 @@ public interface SettingsReader {
      * Returns the parent scope, or {@code null} if this scope has no parent.
      */
     SettingsReader getParent();
+
+    // -- Typed SPI value accessors (default impls parse via type factories) --
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Region}, or
+     * {@code null} if no value is set.
+     *
+     * @throws IllegalArgumentException if the value is not a valid region
+     */
+    default Region readRegion(String key) {
+        String value = get(key);
+        return value == null ? null : Region.parse(value);
+    }
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Region}, or
+     * {@code defaultValue} if no value is set.
+     */
+    default Region readRegion(String key, Region defaultValue) {
+        String value = get(key);
+        return value == null ? defaultValue : Region.parse(value);
+    }
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Paint.Color}, or
+     * {@code null} if no value is set.
+     */
+    default Paint.Color readColor(String key) {
+        String value = get(key);
+        return value == null ? null : new Paint.Color(value);
+    }
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Paint.Color}, or
+     * {@code defaultValue} if no value is set.
+     */
+    default Paint.Color readColor(String key, Paint.Color defaultValue) {
+        String value = get(key);
+        return value == null ? defaultValue : new Paint.Color(value);
+    }
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Font}, or
+     * {@code null} if no value is set.
+     *
+     * @throws IllegalArgumentException if the value is not a valid font
+     */
+    default Font readFont(String key) {
+        String value = get(key);
+        return value == null ? null : Font.parse(value);
+    }
+
+    /**
+     * Returns the value of {@code key} parsed as a {@link Font}, or
+     * {@code defaultValue} if no value is set.
+     */
+    default Font readFont(String key, Font defaultValue) {
+        String value = get(key);
+        return value == null ? defaultValue : Font.parse(value);
+    }
 }
