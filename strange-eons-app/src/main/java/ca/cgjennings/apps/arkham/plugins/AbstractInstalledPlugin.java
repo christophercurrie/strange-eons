@@ -230,7 +230,14 @@ public abstract class AbstractInstalledPlugin extends InstalledBundleObject {
                 }
             } else {
                 ClassLoader cl = bundleClassLoader();
-                p = (Plugin) Class.forName(id, true, cl).getConstructor().newInstance();
+                Object instance = Class.forName(id, true, cl).getConstructor().newInstance();
+                if (instance instanceof Plugin oldPlugin) {
+                    p = oldPlugin;
+                } else if (instance instanceof org.strangeeons.plugins.Plugin newPlugin) {
+                    p = new LegacyPluginAdapter(newPlugin);
+                } else {
+                    throw new PluginException("class does not implement a Plugin interface: " + id);
+                }
             }
             PluginContext context;
 
