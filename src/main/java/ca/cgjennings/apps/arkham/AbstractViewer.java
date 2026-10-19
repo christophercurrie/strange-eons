@@ -1,10 +1,7 @@
 package ca.cgjennings.apps.arkham;
 
 import ca.cgjennings.graphics.paints.CheckeredPaint;
-import ca.cgjennings.math.Interpolation;
 import ca.cgjennings.ui.EyeDropper;
-import ca.cgjennings.ui.anim.Animation;
-import ca.cgjennings.ui.anim.TimeShiftedComposer;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -313,7 +310,6 @@ public abstract class AbstractViewer extends JPanel {
             } else if (button == MouseEvent.BUTTON3) {
                 tx = ty = 0d;
                 userScaleMultiplier = 1d;
-                zoomIndex = ZOOM_1_INDEX;
             }
             repaint(50);
         }
@@ -375,25 +371,10 @@ public abstract class AbstractViewer extends JPanel {
             if (!isEnabled()) {
                 return;
             }
-            int rotation = e.getWheelRotation();
-            if (!Settings.getShared().getYesNo("invert-wheel-zoom")) {
-                rotation = -rotation;
-            }
-
-            zoomIndex = Math.max(0, Math.min(zoomIndex + rotation, zoomLevels.length - 1));
-
-            final double startMultiplier = userScaleMultiplier;
-            final double stopMultiplier = zoomLevels[zoomIndex];
-
-            if (startMultiplier != stopMultiplier) {
-                Animation anim = new Animation(0.25f) {
-                    @Override
-                    public void composeFrame(float position) {
-                        changeZoom(Interpolation.lerp(position, startMultiplier, stopMultiplier));
-                    }
-                };
-                new TimeShiftedComposer(anim);
-                anim.play(this);
+            double rotation = e.getPreciseWheelRotation();
+            if (rotation != 0d) {
+                boolean invert = Settings.getShared().getYesNo("invert-wheel-zoom");
+                changeZoom(wheelZoom(userScaleMultiplier, rotation, invert));
             }
         }
     }
@@ -415,10 +396,29 @@ public abstract class AbstractViewer extends JPanel {
         }
     }
 
-    private static final int ZOOM_1_INDEX = 3; // index of 100% in the zoom array
-    private static final double[] zoomLevels = {
-        //		0.125, 0.167, 0.25, 0.33, 0.5, 0.667, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 20.0, 24.0, 28.0, 32.0
-        18.75 / 150d, 37.5d / 150d, 75d / 150d, 150d / 150d, 225d / 150d, 300d / 150d, 450d / 150d, 600d / 150d, 750d / 150d, 900d / 150d, 1100d / 150d
-    };
-    private int zoomIndex = 3;
+    /**
+     * Returns the zoom multiplier that results from applying a wheel rotation
+     * to the current multiplier. Rotations combine multiplicatively, so many
+     * small (trackpad) rotations have the same effect as one large rotation of
+     * the same total.
+     *
+     * @param current the current zoom multiplier
+     * @param rotation the precise wheel rotation; negative values zoom in
+     * unless inverted
+     * @param invert if {@code true}, positive rotations zoom in
+     * @return the new zoom multiplier, clamped to the supported range
+     */
+    static double wheelZoom(double current, double rotation, boolean invert) {
+        double exponent = invert ? rotation : -rotation;
+        return clampZoom(current * Math.pow(WHEEL_ZOOM_FACTOR, exponent));
+    }
+
+    static double clampZoom(double zoom) {
+        return Math.max(MIN_ZOOM, Math.min(zoom, MAX_ZOOM));
+    }
+
+    /** Zoom factor applied for each full unit of wheel rotation. */
+    static final double WHEEL_ZOOM_FACTOR = 1.25d;
+    static final double MIN_ZOOM = 18.75d / 150d;
+    static final double MAX_ZOOM = 1100d / 150d;
 }
