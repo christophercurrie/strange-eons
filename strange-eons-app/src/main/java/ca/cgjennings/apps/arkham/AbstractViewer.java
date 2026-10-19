@@ -1,10 +1,8 @@
 package ca.cgjennings.apps.arkham;
 
 import ca.cgjennings.graphics.paints.CheckeredPaint;
-import ca.cgjennings.math.Interpolation;
 import ca.cgjennings.ui.EyeDropper;
-import ca.cgjennings.ui.anim.Animation;
-import ca.cgjennings.ui.anim.TimeShiftedComposer;
+import ca.cgjennings.ui.WheelZoom;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -313,7 +311,6 @@ public abstract class AbstractViewer extends JPanel {
             } else if (button == MouseEvent.BUTTON3) {
                 tx = ty = 0d;
                 userScaleMultiplier = 1d;
-                zoomIndex = ZOOM_1_INDEX;
             }
             repaint(50);
         }
@@ -375,25 +372,10 @@ public abstract class AbstractViewer extends JPanel {
             if (!isEnabled()) {
                 return;
             }
-            int rotation = e.getWheelRotation();
-            if (!Settings.getShared().getYesNo("invert-wheel-zoom")) {
-                rotation = -rotation;
-            }
-
-            zoomIndex = Math.max(0, Math.min(zoomIndex + rotation, zoomLevels.length - 1));
-
-            final double startMultiplier = userScaleMultiplier;
-            final double stopMultiplier = zoomLevels[zoomIndex];
-
-            if (startMultiplier != stopMultiplier) {
-                Animation anim = new Animation(0.25f) {
-                    @Override
-                    public void composeFrame(float position) {
-                        changeZoom(Interpolation.lerp(position, startMultiplier, stopMultiplier));
-                    }
-                };
-                new TimeShiftedComposer(anim);
-                anim.play(this);
+            double rotation = e.getPreciseWheelRotation();
+            if (rotation != 0d) {
+                boolean invert = Settings.getShared().getYesNo("invert-wheel-zoom");
+                changeZoom(WheelZoom.apply(userScaleMultiplier, rotation, invert, MIN_ZOOM, MAX_ZOOM));
             }
         }
     }
@@ -415,10 +397,6 @@ public abstract class AbstractViewer extends JPanel {
         }
     }
 
-    private static final int ZOOM_1_INDEX = 3; // index of 100% in the zoom array
-    private static final double[] zoomLevels = {
-        //		0.125, 0.167, 0.25, 0.33, 0.5, 0.667, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 20.0, 24.0, 28.0, 32.0
-        18.75 / 150d, 37.5d / 150d, 75d / 150d, 150d / 150d, 225d / 150d, 300d / 150d, 450d / 150d, 600d / 150d, 750d / 150d, 900d / 150d, 1100d / 150d
-    };
-    private int zoomIndex = 3;
+    private static final double MIN_ZOOM = 18.75d / 150d;
+    private static final double MAX_ZOOM = 1100d / 150d;
 }
