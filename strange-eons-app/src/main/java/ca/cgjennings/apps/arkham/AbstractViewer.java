@@ -2,6 +2,7 @@ package ca.cgjennings.apps.arkham;
 
 import ca.cgjennings.graphics.paints.CheckeredPaint;
 import ca.cgjennings.ui.EyeDropper;
+import ca.cgjennings.ui.WheelZoom;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -374,7 +375,7 @@ public abstract class AbstractViewer extends JPanel {
             double rotation = e.getPreciseWheelRotation();
             if (rotation != 0d) {
                 boolean invert = Settings.getShared().getYesNo("invert-wheel-zoom");
-                changeZoom(wheelZoom(userScaleMultiplier, rotation, invert));
+                changeZoom(WheelZoom.apply(userScaleMultiplier, rotation, invert, MIN_ZOOM, MAX_ZOOM));
             }
         }
     }
@@ -396,29 +397,6 @@ public abstract class AbstractViewer extends JPanel {
         }
     }
 
-    /**
-     * Returns the zoom multiplier that results from applying a wheel rotation
-     * to the current multiplier. Rotations combine multiplicatively, so many
-     * small (trackpad) rotations have the same effect as one large rotation of
-     * the same total.
-     *
-     * @param current the current zoom multiplier
-     * @param rotation the precise wheel rotation; negative values zoom in
-     * unless inverted
-     * @param invert if {@code true}, positive rotations zoom in
-     * @return the new zoom multiplier, clamped to the supported range
-     */
-    static double wheelZoom(double current, double rotation, boolean invert) {
-        double exponent = invert ? rotation : -rotation;
-        return clampZoom(current * Math.pow(WHEEL_ZOOM_FACTOR, exponent));
-    }
-
-    static double clampZoom(double zoom) {
-        return Math.max(MIN_ZOOM, Math.min(zoom, MAX_ZOOM));
-    }
-
-    /** Zoom factor applied for each full unit of wheel rotation. */
-    static final double WHEEL_ZOOM_FACTOR = 1.25d;
-    static final double MIN_ZOOM = 18.75d / 150d;
-    static final double MAX_ZOOM = 1100d / 150d;
+    private static final double MIN_ZOOM = 18.75d / 150d;
+    private static final double MAX_ZOOM = 1100d / 150d;
 }
