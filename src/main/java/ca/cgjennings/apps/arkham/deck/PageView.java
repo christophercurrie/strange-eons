@@ -23,6 +23,7 @@ import ca.cgjennings.apps.arkham.sheet.RenderTarget;
 import ca.cgjennings.math.Interpolation;
 import ca.cgjennings.platform.PlatformSupport;
 import ca.cgjennings.ui.StepSelector;
+import ca.cgjennings.ui.WheelZoom;
 import ca.cgjennings.ui.anim.Animation;
 import ca.cgjennings.ui.anim.TimeShiftedComposer;
 import java.awt.AWTEvent;
@@ -134,11 +135,11 @@ public final class PageView extends JComponent {
 
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            int rotation = e.getWheelRotation();
-            if (!Settings.getShared().getYesNo("invert-wheel-zoom")) {
-                rotation = -rotation;
+            double rotation = e.getPreciseWheelRotation();
+            if (rotation != 0d) {
+                boolean invert = Settings.getShared().getYesNo("invert-wheel-zoom");
+                changeScale(WheelZoom.apply(scale, rotation, invert, MIN_SCALE, MAX_SCALE), false);
             }
-            adjustZoomBySteps(rotation);
         }
 
         @Override
@@ -733,6 +734,8 @@ public final class PageView extends JComponent {
     // these zoom steps have been selected to optimize performance with
     // components that have template images that are a multiple of 150
     private static final StepSelector scaleSelector = new StepSelector(STANDARD_ZOOM_LEVELS);
+    private static final double MIN_SCALE = STANDARD_ZOOM_LEVELS[0];
+    private static final double MAX_SCALE = STANDARD_ZOOM_LEVELS[STANDARD_ZOOM_LEVELS.length - 1];
 
     private void changeScale(final double newScale, boolean animate) {
         if (scale == newScale) {
