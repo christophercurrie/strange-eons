@@ -208,7 +208,8 @@ tasks.register<Exec>("jpackageDeb") {
     description = "Build a .deb installer (Linux only)."
     dependsOn("shadowJar", cleanInstallers)
     onlyIf { OperatingSystem.current().isLinux }
-    doFirst { installersDir.asFile.mkdirs() }
+    val dest = installersDir.asFile
+    doFirst { dest.mkdirs() }
     workingDir = rootProject.projectDir
     executable = jpackageExecutable.get()
     args(
@@ -225,7 +226,8 @@ tasks.register<Exec>("jpackageRpm") {
     description = "Build a .rpm installer (Linux only)."
     dependsOn("shadowJar", cleanInstallers)
     onlyIf { OperatingSystem.current().isLinux }
-    doFirst { installersDir.asFile.mkdirs() }
+    val dest = installersDir.asFile
+    doFirst { dest.mkdirs() }
     workingDir = rootProject.projectDir
     executable = jpackageExecutable.get()
     args(
@@ -242,7 +244,8 @@ tasks.register<Exec>("jpackageAppImage") {
     description = "Build a Linux app-image directory."
     dependsOn("shadowJar", cleanInstallers)
     onlyIf { OperatingSystem.current().isLinux }
-    doFirst { installersDir.asFile.mkdirs() }
+    val dest = installersDir.asFile
+    doFirst { dest.mkdirs() }
     executable = jpackageExecutable.get()
     args(commonJpackageArgs() + listOf("--type", "app-image", "--icon", linuxIcon))
 }
@@ -275,7 +278,8 @@ tasks.register<Exec>("jpackageDmg") {
     description = "Build a .dmg installer (macOS only)."
     dependsOn("shadowJar", signJarNatives, cleanInstallers)
     onlyIf { OperatingSystem.current().isMacOsX }
-    doFirst { installersDir.asFile.mkdirs() }
+    val dest = installersDir.asFile
+    doFirst { dest.mkdirs() }
     workingDir = rootProject.projectDir
     executable = jpackageExecutable.get()
     val identity = (project.findProperty("strange-eons.apple.signing.identity") as String?) ?: ""
@@ -310,7 +314,8 @@ tasks.register<Exec>("jpackageMsi") {
     description = "Build a .msi installer (Windows only)."
     dependsOn("shadowJar", cleanInstallers)
     onlyIf { OperatingSystem.current().isWindows }
-    doFirst { installersDir.asFile.mkdirs() }
+    val dest = installersDir.asFile
+    doFirst { dest.mkdirs() }
     workingDir = rootProject.projectDir
     executable = jpackageExecutable.get()
     args(
