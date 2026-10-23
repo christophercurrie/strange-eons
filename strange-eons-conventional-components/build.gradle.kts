@@ -4,6 +4,14 @@
 
 plugins {
     `java-library`
+    id("com.vanniktech.maven.publish")
+}
+
+mavenPublishing {
+    pom {
+        name = "Strange Eons Conventional Components"
+        description = "Component framework SPI for Strange Eons component-rendering plug-ins."
+    }
 }
 
 dependencies {

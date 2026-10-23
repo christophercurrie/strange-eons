@@ -4,6 +4,14 @@
 
 plugins {
     `java-library`
+    id("com.vanniktech.maven.publish")
+}
+
+mavenPublishing {
+    pom {
+        name = "Strange Eons Plug-in API"
+        description = "Interfaces and value types that Strange Eons plug-ins compile against."
+    }
 }
 
 dependencies {
