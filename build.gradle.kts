@@ -42,7 +42,7 @@ subprojects {
                 signAllPublications()
             }
             pom {
-                url = "https://github.com/christophercurrie/strange-eons"
+                url = "https://github.com/strange-eons/strange-eons"
                 licenses {
                     license {
                         name = "MIT License"
@@ -58,9 +58,9 @@ subprojects {
                     }
                 }
                 scm {
-                    url = "https://github.com/christophercurrie/strange-eons"
-                    connection = "scm:git:https://github.com/christophercurrie/strange-eons.git"
-                    developerConnection = "scm:git:ssh://git@github.com/christophercurrie/strange-eons.git"
+                    url = "https://github.com/strange-eons/strange-eons"
+                    connection = "scm:git:https://github.com/strange-eons/strange-eons.git"
+                    developerConnection = "scm:git:ssh://git@github.com/strange-eons/strange-eons.git"
                 }
             }
         }
