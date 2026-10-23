@@ -1,5 +1,11 @@
 rootProject.name = "strange-eons"
 
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+
 include(
     ":vendor",
     ":strange-eons-plugin-api",
