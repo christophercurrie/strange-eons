@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Paint;
+import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineBreakMeasurer;
@@ -58,7 +59,10 @@ import java.util.logging.Logger;
  * replaced by arbitrary text strings.
  * <p>
  * User-defined tags are essentially the same as replacement tags, but they are
- * defined by the end user using the &lt;define&gt; built-in tag.
+ * defined by the end user using the &lt;define&gt; built-in tag. Its first
+ * parameter is the tag name and its second is the replacement; further
+ * parameters are ignored, so a replacement with spaces must be quoted, as in
+ * {@code <define greeting "Hello world">}.
  * <p>
  * Non-parametric style tags are tags that do not take parameters and apply a
  * {@link TextStyle} to the text they enclose. Examples include the &lt;b&gt;
@@ -401,8 +405,11 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * associated with this tag, the replacement will be removed.
      */
     public void setStyleForTag(String tagName, TextStyle style) {
+        if (tagName == null) {
+            return;
+        }
         removeTag(tagName);
-        styleMap.put(tagName, style);
+        styleMap.put(tagName.toLowerCase(), style);
     }
 
     /**
@@ -411,7 +418,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * replacement or parametric style set).
      */
     public TextStyle getStyleForTag(String tagName) {
-        return styleMap.get(tagName);
+        return styleMap.get(tagName.toLowerCase());
     }
 
     /**
@@ -420,8 +427,11 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * based on the tag's parameters.
      */
     public void setParametricStyleForTag(String tagName, ParametricStyleFactory factory) {
+        if (tagName == null) {
+            return;
+        }
         removeTag(tagName);
-        parametricStyleMap.put(tagName, factory);
+        parametricStyleMap.put(tagName.toLowerCase(), factory);
     }
 
     /**
@@ -430,7 +440,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * replacement or style set).
      */
     public ParametricStyleFactory getParametricStyleForTag(String tagName) {
-        return parametricStyleMap.get(tagName);
+        return parametricStyleMap.get(tagName.toLowerCase());
     }
 
     /**
@@ -439,8 +449,11 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * repalcement.
      */
     public void setReplacementForTag(String tagName, String replacement) {
+        if (tagName == null) {
+            return;
+        }
         removeTag(tagName);
-        replacements.put(tagName, replacement);
+        replacements.put(tagName.toLowerCase(), replacement);
     }
 
     /**
@@ -449,14 +462,19 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * has a style or parametric style set).
      */
     public String getReplacementForTag(String tagName) {
-        return replacements.get(tagName);
+        return replacements.get(tagName.toLowerCase());
     }
 
     /**
      * If a style or replacement is associated with this tag, the style will be
-     * removed and the tag will be treated as an unknown tag.
+     * removed and the tag will be treated as an unknown tag. A {@code null} tag
+     * name is ignored, here and by the methods that set a tag.
      */
     public void removeTag(String tagName) {
+        if (tagName == null) {
+            return;
+        }
+        tagName = tagName.toLowerCase();
         if (styleMap.containsKey(tagName)) {
             styleMap.remove(tagName);
         } else if (parametricStyleMap.containsKey(tagName)) {
@@ -697,7 +715,10 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
     }
 
     /**
-     * Set the horizontal alignment of heading text tags (h1, h2, etc.).
+     * Set the horizontal alignment of heading text tags (h1, h2, etc.). All of
+     * h1 to h7 start a new paragraph, but only those with a registered style act
+     * as headings. By default that is only h1; use {@link #setStyleForTag} to
+     * enable the others.
      */
     public void setHeadlineAlignment(int alignment) {
         alignment = normalizeAlignment(alignment, true);
@@ -728,7 +749,8 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
     }
 
     /**
-     * Set the distance, in inches, between tab stops.
+     * Set the distance, in inches, between tab stops. The first stop is at the
+     * left margin, so a tab at the start of a line does not move the text.
      */
     public void setTabWidth(double gapInInches) {
         if (tabWidths.length == 1) {
@@ -742,6 +764,10 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         }
     }
 
+    /**
+     * Set the distances, in inches, between tab stops, repeating as needed. The
+     * first stop is one distance in from the left margin.
+     */
     public void setTabWidths(double[] tabStops) {
         if (tabStops == null) {
             throw new NullPointerException("tabStops");
@@ -773,10 +799,12 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         createStyledText();
         if (!textHasWhitespace && (getTextFitting() & FIT_SCALE_TEXT) != 0) {
             drawAsSingleLine(g, r);
-            return lastLaidOutYOffset;
+            return lastSingleLineNextY;
         }
         return layout(g, r, true);
     }
+
+    private static final int MAX_SINGLE_LINE_SCALING_PASSES = 4;
 
     public double drawAsSingleLine(Graphics2D g, Rectangle2D r) {
         if (DEBUG) {
@@ -787,11 +815,21 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         createStyledText();
         scaleText(1d);
         tightness = 0f;
-        double textHeight = renderText(g, r, 0d, lastLaidOutFontRenderContext, true, true);
+        FontRenderContext frc = lastLaidOutFontRenderContext;
+        double textHeight = renderText(g, r, 0d, frc, true, true);
 
         if (lastLineTextWidth > r.getWidth()) {
-            scaleText(r.getWidth() / lastLineTextWidth);
-            textHeight = renderText(g, r, 0d, lastLaidOutFontRenderContext, true, true);
+            // without fractional metrics, advances round to whole units at
+            // small sizes and the width does not follow the scale
+            frc = new FontRenderContext(frc.getTransform(), frc.getAntiAliasingHint(), RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+            textHeight = renderText(g, r, 0d, frc, true, true);
+
+            double scale = 1d;
+            for (int pass = 0; pass < MAX_SINGLE_LINE_SCALING_PASSES && lastLineTextWidth > r.getWidth(); ++pass) {
+                scale *= r.getWidth() / lastLineTextWidth;
+                scaleText(scale);
+                textHeight = renderText(g, r, 0d, frc, true, true);
+            }
         }
 
         double yOffset = 0f;
@@ -806,15 +844,22 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
 
         boolean oldMarkBad = markBadBoxes;
         markBadBoxes = false;
-        renderText(g, r, yOffset, lastLaidOutFontRenderContext, false, true);
+        renderText(g, r, yOffset, frc, false, true);
+        // a single line has no leading, so the next line starts at its bottom
+        lastSingleLineNextY = r.getY() + yOffset + textHeight;
         markBadBoxes = oldMarkBad;
+
+        // the scale and tightness set here do not apply to a regular layout
+        lastLaidOutRectangle = null;
 
         return lastLineTextWidth;
     }
 
     /**
      * Simulate rendering the current markup without drawing anything, returning
-     * the height that the text would have covered.
+     * the height that the text would have covered. Empty markup measures as one
+     * line of the default style, since layout always includes at least one line
+     * to establish a baseline.
      *
      * @return the layout height
      */
@@ -847,6 +892,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      */
     private Rectangle2D lastLaidOutRectangle = null;
     private double lastLaidOutYOffset;
+    private double lastSingleLineNextY;
     private FontRenderContext lastLaidOutFontRenderContext = null;
     private FontRenderContext scaledFontRenderContext;
 
@@ -863,8 +909,13 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         FontRenderContext frc = g.getFontRenderContext();
 
         if (lastLaidOutRectangle == null || !r.equals(lastLaidOutRectangle) || lastLaidOutFontRenderContext == null || !lastLaidOutFontRenderContext.equals(frc)) {
-            lastLaidOutRectangle = r;
+            // copied since the caller may reuse the object for a different size
+            lastLaidOutRectangle = (Rectangle2D) r.clone();
             lastLaidOutFontRenderContext = frc;
+
+            // only the final pass below contributes segments
+            List<LayoutSegment> appendList = segmentAppendList;
+            segmentAppendList = null;
 
             // TODO: need to reset the scale if the rectangle changes and we
             //       are asked to render the same markup, or if the markup
@@ -886,8 +937,10 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
                     float newTightness = minTightness;
                     for (float t = 0.20f; t < 1f; t += 0.20f) {
                         tightness = minTightness + (maxTightness - minTightness) * t;
-                        if (renderText(g, r, 0f, scaledFontRenderContext, true, false) <= rectHeight) {
+                        double height = renderText(g, r, 0f, scaledFontRenderContext, true, false);
+                        if (height <= rectHeight) {
                             newTightness = tightness;
+                            textHeight = height;
                         } else {
                             break;
                         }
@@ -942,9 +995,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
                 textHeight = renderText(g, r, 0f, scaledFontRenderContext, true, false);
             }
 
-            if (render == false) {
-                return textHeight;
-            }
+            segmentAppendList = appendList;
 
             // position pen for rendering according to the vertical draw setting
             double yOffset = 0f;
@@ -959,6 +1010,9 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
             lastLaidOutYOffset = yOffset;
         }
 
+        if (!render) {
+            return renderText(g, r, 0f, scaledFontRenderContext, true, false);
+        }
         return renderText(g, r, lastLaidOutYOffset, scaledFontRenderContext, false, false);
     }
 
@@ -985,7 +1039,20 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         );
     }
 
+    /**
+     * Returns the tab stop positions for a line, or {@code null} if the tab
+     * widths do not span at least one point, in which case tabs count as
+     * 0-width spaces.
+     */
     private double[] createTabStopArray(double x, double width) {
+        double cycle = 0d;
+        for (double tabWidth : tabWidths) {
+            cycle += tabWidth * dpi;
+        }
+        if (!(cycle >= dpi / 72d)) {
+            return null;
+        }
+
         double[] tabStops;
         if (tabWidths.length == 1) {
             double tabSize = tabWidths[0] * dpi;
@@ -1135,11 +1202,14 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
 
                     if (layout != null) {
                         // if we are supposed to justify the text...
-                        if ((!measureOnly || segmentAppendList != null) && (currentJustification & LAYOUT_JUSTIFY) != 0) {
+                        if ((!measureOnly || segmentAppendList != null) && (paragraph.getAlignment() & LAYOUT_JUSTIFY) != 0) {
                             // and this is not the last line in the paragraph...
                             if (!atEndOfParagraph && !atATab) {
-                                // then perform justification on this line
-                                layout = layout.getJustifiedLayout((float) (shapedX2 - shapedX1));
+                                // then perform justification on what remains of this line
+                                double justifiedWidth = shapedX2 - xPosition;
+                                if (justifiedWidth > 0d) {
+                                    layout = layout.getJustifiedLayout((float) justifiedWidth);
+                                }
                             }
                         }
 
@@ -1173,8 +1243,9 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
                         // update the index into tabLocations to point to the next tab
                         tabCurrent++;
                         // skip xPosition to the next tab stop---if rendering as a
-                        // single line, tabStops==null and tabs count as 0-width spaces
-                        if (!restrictToSingleLine) {
+                        // single line or the tab widths are unusable,
+                        // tabStops==null and tabs count as 0-width spaces
+                        if (tabStops != null) {
                             int t;
                             final int stopIndex = tabStops.length - 1;
                             for (t = 0; t < stopIndex && xPosition > tabStops[t]; ++t);
@@ -1346,7 +1417,13 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
             try {
                 paragraphs[line] = createStyledParagraph(lines[line]);
             } catch (StackOverflowError soe) {
-                paragraphs[line] = new StyledParagraph(soe.getLocalizedMessage());
+                String message = String.valueOf(soe.getLocalizedMessage());
+                paragraphs[line] = new StyledParagraph(message);
+                // discard what the failed paragraph recorded
+                tabs.clearCurrentLine();
+                tabs.addTab(message.length());
+                closeOutstandingStyles(0, true);
+                finishedStyles.clear();
             }
         }
 
@@ -1487,6 +1564,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
     protected String currentTagNoCase;
     protected String currentParametricTag;
     protected StringBuilder currentSourceLine;
+    private int currentReplacementCount;
     protected HashMap<String, LinkedList<StyleMark>> styleStackMap = new HashMap<>();
     protected LinkedList<StyleMark> finishedStyles = new LinkedList<>();
     protected boolean textHasWhitespace;
@@ -1504,6 +1582,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         // us to replace and then re-process a section of text; a replacement
         // tag may replace itself with tagged material to be parsed
         currentSourceLine = new StringBuilder(source);
+        currentReplacementCount = 0;
         final int MAXIMUM_SOURCE_SIZE = source.length() + bufferLimit;
 
         // holds the raw text (without tags) as we process the line
@@ -1515,9 +1594,11 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         int state = TEXT;
 
         for (currentIndex = 0; currentIndex < currentSourceLine.length(); ++currentIndex) {
-            if (currentSourceLine.length() > MAXIMUM_SOURCE_SIZE) {
+            // a replacement the same size as its tag never grows the line, so
+            // also limit the number of replacements
+            if (currentSourceLine.length() > MAXIMUM_SOURCE_SIZE || currentReplacementCount > MAXIMUM_SOURCE_SIZE) {
                 throw new StackOverflowError(
-                        "Probable infinite recursion while expanding definition: " + currentSourceLine.substring(currentSourceLine.length() - 80));
+                        "Probable infinite recursion while expanding definition: " + currentSourceLine.substring(Math.max(0, currentSourceLine.length() - 80)));
             }
             char c = currentSourceLine.charAt(currentIndex);
 
@@ -1642,6 +1723,8 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
                 int type = Character.getType(prev);
                 if (type == Character.DASH_PUNCTUATION) {
                     useCloseQuote = openQuotes > 0;
+                } else if (type == Character.START_PUNCTUATION || type == Character.INITIAL_QUOTE_PUNCTUATION) {
+                    useCloseQuote = false;
                 }
             }
 
@@ -1735,7 +1818,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
         }
 
         // check if this tag is a definition
-        if (currentParametricTag.startsWith("define")) {
+        if (currentParametricTag.equals("define")) {
             String[] params = getTagParameters();
             if (params.length >= 2) {
                 setDefinitionForTag(params[0], params[1]);
@@ -1957,6 +2040,10 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
                 }
             }
         }
+        // an @ without a closing ; is not a parameter reference
+        if (!inText) {
+            b.append('@').append(n);
+        }
         return b.toString();
     }
 
@@ -2055,6 +2142,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * may contain tags, and if so, they will also be parsed.
      */
     protected void replaceTagWith(String replacement) {
+        ++currentReplacementCount;
         currentIndex = currentTagStartingIndex - 1; // -1 since index will be incremented
 
         currentSourceLine.delete(currentTagStartingIndex, currentTagEndingIndex + 1);
@@ -2092,15 +2180,15 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * the tag yourself.
      */
     protected String handleUnknownTag(String tagnameLowercase, String tagnameOriginalCase) {
-        if (tagnameLowercase.length() <= "u+0000".length() && tagnameLowercase.startsWith("u+")) {
+        if (tagnameLowercase.length() <= "u+10ffff".length() && tagnameLowercase.startsWith("u+")) {
             try {
-                char unicodeChar = (char) Integer.parseInt(tagnameLowercase.substring("u+".length()), 16);
-                if (unicodeChar == '<') {
+                int codePoint = Integer.parseInt(tagnameLowercase.substring("u+".length()), 16);
+                if (codePoint == '<') {
                     return "<lt>";
-                } else if (unicodeChar == '>') {
+                } else if (codePoint == '>') {
                     return "<gt>";
-                } else {
-                    return String.valueOf(unicodeChar);
+                } else if (Character.isValidCodePoint(codePoint)) {
+                    return Character.toString(codePoint);
                 }
             } catch (NumberFormatException e) {
             } // will return no replacement as usual
@@ -2226,9 +2314,22 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
             }
         }
         if (line.length() > 0) {
-            paras.add(line.toString());
+            // a closing headline tag left at the end belongs to the headline
+            if (!paras.isEmpty() && isHeadlineCloseTag(line)) {
+                int last = paras.size() - 1;
+                paras.set(last, paras.get(last) + line);
+            } else {
+                paras.add(line.toString());
+            }
         }
         return paras.toArray(String[]::new);
+    }
+
+    private static boolean isHeadlineCloseTag(CharSequence text) {
+        return text.length() == 5 && text.charAt(0) == '<' && text.charAt(1) == '/'
+                && Character.toLowerCase(text.charAt(2)) == 'h'
+                && text.charAt(3) >= '1' && text.charAt(3) <= '7'
+                && text.charAt(4) == '>';
     }
 
     /**
@@ -2302,6 +2403,10 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
 
         public void setCurrentLine(int line) {
             this.line = line;
+        }
+
+        public void clearCurrentLine() {
+            tabLists[line] = null;
         }
 
         public void addTab(int index) {
