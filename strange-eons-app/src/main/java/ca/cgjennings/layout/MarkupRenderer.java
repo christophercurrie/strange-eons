@@ -448,6 +448,7 @@ public class MarkupRenderer implements org.strangeeons.plugins.graphics.MarkupRe
      * this tag occurs in the markup text, it will be replaced by the specified
      * repalcement.
      */
+    @Override
     public void setReplacementForTag(String tagName, String replacement) {
         if (tagName == null) {
             return;

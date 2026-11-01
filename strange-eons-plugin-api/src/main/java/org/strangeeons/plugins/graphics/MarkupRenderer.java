@@ -67,6 +67,12 @@ public interface MarkupRenderer {
      */
     void setStyleForTag(String tag, TextStyle style);
 
+    /**
+     * Sets markup that replaces the given tag wherever it occurs.
+     * Replaces any prior style or replacement for that tag.
+     */
+    void setReplacementForTag(String tag, String replacement);
+
     // -- Line spacing --------------------------------------------------------
 
     /**
@@ -109,7 +115,7 @@ public interface MarkupRenderer {
      */
     void setPageShape(PageShape shape);
 
-    /** Returns the active page shape, or {@code null} for rectangular layout. */
+    /** Returns the active page shape, which is never {@code null}. */
     PageShape getPageShape();
 
     // -- Rendering -----------------------------------------------------------

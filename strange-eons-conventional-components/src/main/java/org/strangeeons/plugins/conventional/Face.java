@@ -2,6 +2,7 @@ package org.strangeeons.plugins.conventional;
 
 import org.strangeeons.plugins.SettingsReadWrite;
 import org.strangeeons.plugins.graphics.ImageHandle;
+import org.strangeeons.plugins.graphics.MarkupRenderer;
 import org.strangeeons.plugins.graphics.Region;
 
 /**
@@ -75,4 +76,10 @@ public interface Face {
      * adding portrait, text, and decoration on top.
      */
     ImageHandle getTemplateImage();
+
+    /**
+     * Creates a markup renderer for this face's resolution, configured
+     * with the user's text fitting preferences.
+     */
+    MarkupRenderer createMarkupRenderer();
 }

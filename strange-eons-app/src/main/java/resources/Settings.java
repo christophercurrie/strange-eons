@@ -2445,6 +2445,46 @@ public class Settings implements Serializable, Iterable<String>,
         return v == null ? ResourceKit.getMissingImage() : ResourceKit.getImage(v);
     }
 
+    @Override
+    public final org.strangeeons.plugins.graphics.TextStyle readTextStyle(
+            String key, org.strangeeons.plugins.graphics.TextStyle base) {
+        if (get(suffix(key, "-style")) == null) {
+            return base;
+        }
+        try {
+            return getTextStyle(key, (TextStyle) base);
+        } catch (ParseError e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public final org.strangeeons.plugins.graphics.PageShape readPageShape(String key) {
+        if (get(suffix(key, "-shape")) == null) {
+            return null;
+        }
+        try {
+            return getCupShape(key);
+        } catch (ParseError e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public final int readAlignment(String key) {
+        try {
+            return getTextAlignment(key);
+        } catch (ParseError e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public final org.strangeeons.plugins.graphics.ImageHandle readImage(String key) {
+        return get(key) == null ? null
+                : new ca.cgjennings.graphics.spi.AwtImageHandle(getImageResource(key), key);
+    }
+
     /**
      * Returns an image resource that is one in a numbered sequence. The value
      * of the key should include the string "00". This string will be replaced

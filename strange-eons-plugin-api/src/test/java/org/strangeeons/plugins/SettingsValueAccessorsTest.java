@@ -136,6 +136,11 @@ class SettingsValueAccessorsTest {
         @Override public Set<String> getKeySet() { return map.keySet(); }
         @Override public Set<String> getVisibleKeySet() { return map.keySet(); }
         @Override public SettingsReader getParent() { return null; }
+        @Override public org.strangeeons.plugins.graphics.TextStyle readTextStyle(
+                String key, org.strangeeons.plugins.graphics.TextStyle base) { return base; }
+        @Override public org.strangeeons.plugins.graphics.PageShape readPageShape(String key) { return null; }
+        @Override public int readAlignment(String key) { return 0; }
+        @Override public org.strangeeons.plugins.graphics.ImageHandle readImage(String key) { return null; }
 
         @Override public void set(String key, String value) { map.put(key, value); }
         @Override public void setText(String key, String value) {

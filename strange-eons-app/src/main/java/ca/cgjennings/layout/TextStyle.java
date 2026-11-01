@@ -78,6 +78,16 @@ public class TextStyle implements org.strangeeons.plugins.graphics.TextStyle {
         return styles.get(attr);
     }
 
+    @Override
+    public String getFamily() {
+        return get(TextAttribute.FAMILY) instanceof String family ? family : null;
+    }
+
+    @Override
+    public void setFamily(String family) {
+        add(TextAttribute.FAMILY, family);
+    }
+
     /**
      * Remove a {@code TextAttribute} from the style.
      */

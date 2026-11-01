@@ -2,12 +2,14 @@ package ca.cgjennings.apps.arkham.diy.spi;
 
 import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYSheet;
+import ca.cgjennings.apps.arkham.sheet.Sheet;
 import ca.cgjennings.graphics.spi.AwtImageHandle;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 import org.strangeeons.plugins.SettingsReadWrite;
 import org.strangeeons.plugins.conventional.Face;
 import org.strangeeons.plugins.graphics.ImageHandle;
+import org.strangeeons.plugins.graphics.MarkupRenderer;
 import org.strangeeons.plugins.graphics.Region;
 
 /**
@@ -75,5 +77,13 @@ public final class ConventionalDIYFace implements Face {
         BufferedImage template = sheet.getTemplateImage();
         return template == null ? null
                 : new AwtImageHandle(template, getTemplateKey() + "-template");
+    }
+
+    @Override
+    public MarkupRenderer createMarkupRenderer() {
+        ca.cgjennings.layout.MarkupRenderer renderer
+                = new ca.cgjennings.layout.MarkupRenderer(sheet.getTemplateResolution());
+        Sheet.doStandardRendererInitialization(renderer);
+        return renderer;
     }
 }

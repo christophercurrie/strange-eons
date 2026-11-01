@@ -2,8 +2,12 @@ package org.strangeeons.plugins;
 
 import java.util.Set;
 import org.strangeeons.plugins.graphics.Font;
+import org.strangeeons.plugins.graphics.ImageHandle;
+import org.strangeeons.plugins.graphics.MarkupRenderer;
+import org.strangeeons.plugins.graphics.PageShape;
 import org.strangeeons.plugins.graphics.Paint;
 import org.strangeeons.plugins.graphics.Region;
+import org.strangeeons.plugins.graphics.TextStyle;
 
 /**
  * Read access to a Strange Eons settings scope. Implemented by
@@ -71,6 +75,43 @@ public interface SettingsReader {
      * Returns the parent scope, or {@code null} if this scope has no parent.
      */
     SettingsReader getParent();
+
+    // -- Framework-constructed value accessors --------------------------------
+
+    /**
+     * Returns the style described by {@code key}, with or without its
+     * {@code -style} suffix. A non-null {@code base} is updated with the
+     * described attributes and returned, so more specific styles can be
+     * layered over less specific ones. If no value is set, returns
+     * {@code base}.
+     *
+     * @throws IllegalArgumentException if the value is not a valid style
+     */
+    TextStyle readTextStyle(String key, TextStyle base);
+
+    /**
+     * Returns the page shape described by {@code key}, with or without
+     * its {@code -shape} suffix, or {@code null} if no value is set. A
+     * {@code null} shape lays out text in a rectangle.
+     *
+     * @throws IllegalArgumentException if the value is not a valid shape
+     */
+    PageShape readPageShape(String key);
+
+    /**
+     * Returns {@link MarkupRenderer} alignment flags described by
+     * {@code key}, with or without its {@code -alignment} suffix. If no
+     * value is set, returns the top-left alignment.
+     *
+     * @throws IllegalArgumentException if the value is not a valid alignment
+     */
+    int readAlignment(String key);
+
+    /**
+     * Returns the image resource named by the value of {@code key}, or
+     * {@code null} if no value is set.
+     */
+    ImageHandle readImage(String key);
 
     // -- Typed SPI value accessors (default impls parse via type factories) --
 
