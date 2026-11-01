@@ -1,7 +1,6 @@
 package ca.cgjennings.apps.arkham.diy.spi;
 
 import ca.cgjennings.apps.arkham.plugins.UILibraryHelper;
-import java.awt.event.ItemEvent;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -91,12 +90,7 @@ final class SwingValue implements MutableObservable<String> {
         SwingValue value = new SwingValue(
                 () -> toggle.isSelected() ? "1" : "0",
                 v -> toggle.setSelected(Settings.yesNo(v)));
-        toggle.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED
-                    || e.getStateChange() == ItemEvent.DESELECTED) {
-                value.fire();
-            }
-        });
+        toggle.addItemListener(e -> value.fire());
         return value;
     }
 

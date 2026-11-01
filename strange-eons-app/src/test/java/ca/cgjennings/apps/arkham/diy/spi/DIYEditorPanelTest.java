@@ -8,6 +8,7 @@ import ca.cgjennings.apps.arkham.diy.DIYEditor;
 import ca.cgjennings.apps.arkham.diy.ListItem;
 import ca.cgjennings.apps.arkham.observable.AtomicObservable;
 import ca.cgjennings.apps.arkham.sheet.Sheet;
+import java.awt.Canvas;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractButton;
@@ -22,6 +23,8 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.text.SimpleAttributeSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -148,6 +151,46 @@ class DIYEditorPanelTest {
 
         assertThat(settings.get("Name")).isEqualTo("Han");
         verify(diy, atLeastOnce()).markChanged(0);
+    }
+
+    @Test
+    void clearingTextPushesEmptyValue() {
+        JTextField field = new JTextField("Han");
+        panel.bind("Name", field, 0);
+
+        field.setText("");
+
+        assertThat(settings.get("Name")).isEmpty();
+    }
+
+    @Test
+    void styleChangeLeavesSettingAlone() {
+        JTextPane pane = new JTextPane();
+        pane.setText("Han");
+        panel.bind("Name", pane, 0);
+
+        pane.selectAll();
+        pane.setCharacterAttributes(new SimpleAttributeSet(), true);
+
+        assertThat(settings.get("Name")).isEqualTo("Han");
+        verify(diy, never()).markChanged(anyInt());
+    }
+
+    @Test
+    void validFaceIsAcceptedWhenSheetsExist() {
+        withFaces(2);
+        JTextField field = new JTextField();
+        panel.bind("Name", field, 1);
+
+        field.setText("Han");
+
+        verify(diy, atLeastOnce()).markChanged(1);
+    }
+
+    @Test
+    void scrollPaneWithNonSwingViewHasNoBinding() {
+        JScrollPane scroll = new JScrollPane(new Canvas());
+        assertThatIllegalArgumentException().isThrownBy(() -> panel.bind("Rules", scroll, 0));
     }
 
     @Test
