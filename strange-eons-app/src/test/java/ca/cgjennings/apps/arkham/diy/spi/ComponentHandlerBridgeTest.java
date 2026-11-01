@@ -300,7 +300,7 @@ class ComponentHandlerBridgeTest {
         ComponentHandler delegate = mock(ComponentHandler.class);
         org.mockito.Mockito.doAnswer(inv -> {
             EditorPanel panel = inv.getArgument(1);
-            panel.addControl("Name", new JTextField());
+            panel.addTab("Details", new JTextField());
             return null;
         }).when(delegate).createInterface(any(), any(EditorPanel.class));
 
@@ -309,7 +309,8 @@ class ComponentHandlerBridgeTest {
 
         verify(delegate).createInterface(any(), any(EditorPanel.class));
         assertEquals(1, tabs.getTabCount());
-        assertEquals(DIYEditorPanel.TAB_TITLE, tabs.getTitleAt(0));
+        assertEquals("Details", tabs.getTitleAt(0));
+        verify(editor).addFieldPopulationListener(any());
     }
 
     private static byte[] serialize(Object value) throws IOException {

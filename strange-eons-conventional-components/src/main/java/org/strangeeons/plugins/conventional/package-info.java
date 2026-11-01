@@ -20,8 +20,9 @@
  *       {@code .settings} file.</li>
  * </ul>
  *
- * <p>Types in this package reference only {@code java.*} and
- * {@code org.strangeeons.plugins.*}. Plug-ins implementing
+ * <p>Types in this package reference only {@code java.*},
+ * {@code javax.swing.*}, and {@code org.strangeeons.plugins.*}.
+ * Editor interfaces are built with Swing. Plug-ins implementing
  * {@link ComponentHandler} can compile against
  * {@code strange-eons-plugin-api} and
  * {@code strange-eons-conventional-components} without depending on
