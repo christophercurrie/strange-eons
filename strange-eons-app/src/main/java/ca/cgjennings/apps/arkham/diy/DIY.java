@@ -10,7 +10,6 @@ import ca.cgjennings.apps.arkham.component.Portrait;
 import ca.cgjennings.apps.arkham.component.PortraitProvider;
 import ca.cgjennings.apps.arkham.component.conversion.ConversionSession;
 import ca.cgjennings.apps.arkham.component.conversion.UpgradeConversionTrigger;
-import ca.cgjennings.apps.arkham.plugins.PluginContextFactory;
 import ca.cgjennings.apps.arkham.plugins.ScriptMonkey;
 import ca.cgjennings.apps.arkham.sheet.MarkerStyle;
 import ca.cgjennings.apps.arkham.sheet.Sheet;
@@ -35,8 +34,9 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import javax.imageio.ImageIO;
-import javax.script.ScriptException;
 import javax.swing.text.JTextComponent;
+import org.strangeeons.scripts.ScriptLanguage;
+import org.strangeeons.scripts.ScriptSession;
 import resources.Language;
 import static resources.Language.string;
 import resources.ResourceKit;
@@ -218,7 +218,7 @@ public class DIY extends AbstractGameComponent implements Handler {
     private transient boolean locked = false;
     private transient JTextComponent nameField = null;
     private transient boolean scriptDebug;
-    private transient ScriptMonkey monkey;
+    private transient ScriptSession session;
     private transient Handler handler;
     private transient UpgradeConversionTrigger upgradeConversionTrigger = null;
 
@@ -322,6 +322,16 @@ public class DIY extends AbstractGameComponent implements Handler {
             return;
         }
 
+        String extension = HandlerSpec.scriptExtension(handlerScript);
+        if (extension != null) {
+            ScriptLanguage language = BundleInstaller.lookupScriptLanguageForExtension(extension);
+            if (language == null) {
+                throw new IOException("no script language registered for " + extension + ": " + handlerScript);
+            }
+            createScriptHandler(language, handlerScript);
+            return;
+        }
+
         if (!handlerScript.endsWith(".js")) {
             try {
                 // try to create the handler from a class
@@ -334,36 +344,30 @@ public class DIY extends AbstractGameComponent implements Handler {
             }
         }
 
-        String script = handlerScript;
-        if (!script.contains(":/")) {
-            script = "res://" + script;
-        }
-        try {
-            monkey = new ScriptMonkey(script);
-            monkey.setSettingProvider(getSettings());
-            monkey.bind(PluginContextFactory.createDummyContext());
-            monkey.setBreakpoint(scriptDebug);
-            Object retVal = monkey.eval(ScriptMonkey.getLibrary(script));
-            if (!(retVal instanceof ScriptException)) {
-                try {
-                    handler = monkey.implement(Handler.class);
-                } catch (IllegalArgumentException e) {
-                    ScriptMonkey.getConsoleErrorWriter().println(
-                            "DIY script does not implement Handler functions: " + script
-                    );
-                }
-            }
-        } catch (FileNotFoundException e) {
-            if (extensionName != null) {
-                ca.cgjennings.apps.arkham.dialog.ErrorDialog.displayError(string("plug-err-diy-missing-1", extensionName), e);
-            }
-            throw new FileNotFoundException(string("plug-err-diy-missing-2", script));
-        } catch (IOException e) {
-            e.printStackTrace(ScriptMonkey.getConsoleErrorWriter());
-        }
+        createScriptHandler(new LegacyScriptLanguage(getSettings(), scriptDebug), handlerScript);
+    }
 
-        if (handler == null) {
-            throw new IOException("could not create DIY handler, cause unknown: " + script);
+    /**
+     * Creates the handler in a new session of the given language. The session
+     * stays open for as long as the handler is in use.
+     */
+    private void createScriptHandler(ScriptLanguage language, String spec) throws IOException {
+        ScriptSession newSession = language.createSession();
+        try {
+            handler = newSession.createHandler(spec, Handler.class);
+            session = newSession;
+        } catch (org.strangeeons.scripts.ScriptException e) {
+            newSession.close();
+            if (e.getCause() instanceof FileNotFoundException fnf) {
+                if (extensionName != null) {
+                    ca.cgjennings.apps.arkham.dialog.ErrorDialog.displayError(string("plug-err-diy-missing-1", extensionName), fnf);
+                }
+                throw new FileNotFoundException(string("plug-err-diy-missing-2", spec));
+            }
+            throw new IOException("could not create DIY handler: " + spec, e);
+        } catch (RuntimeException e) {
+            newSession.close();
+            throw new IOException("could not create DIY handler: " + spec, e);
         }
     }
 
@@ -2814,15 +2818,21 @@ public class DIY extends AbstractGameComponent implements Handler {
 
     @Override
     public void convertFrom(ConversionSession session) {
-        if (monkey != null) {
-            monkey.ambivalentCall("onConvertFrom", this, session);
-        }
+        callConversionHook("onConvertFrom", session);
     }
 
     @Override
     public void convertTo(ConversionSession session) {
-        if (monkey != null) {
-            monkey.ambivalentCall("onConvertTo", this, session);
+        callConversionHook("onConvertTo", session);
+    }
+
+    private void callConversionHook(String hook, ConversionSession conversion) {
+        if (session != null) {
+            try {
+                session.callIfDefined(hook, this, conversion);
+            } catch (org.strangeeons.scripts.ScriptException e) {
+                ScriptMonkey.scriptError(e);
+            }
         }
     }
 
@@ -2872,29 +2882,11 @@ public class DIY extends AbstractGameComponent implements Handler {
      * @return {@code true} if a live engine was released
      */
     public synchronized boolean recycleScriptMonkey() {
-        if (monkey == null) {
+        if (session == null) {
             return false;
         }
-        // Plug-in JS often registers Java-proxy listeners on Swing
-        // components that outlive the editor (e.g. an ActionListener on a
-        // JButton stored in a long-lived UI element). Such a proxy keeps
-        // the entire JS engine reachable, so just nulling our reference
-        // here would free nothing. Empty the engine's bindings + Rhino
-        // top-level scope so the still-rooted engine has a tiny footprint.
-        try {
-            javax.script.ScriptEngine engine = monkey.getEngine();
-            javax.script.Bindings b = engine.getBindings(javax.script.ScriptContext.ENGINE_SCOPE);
-            if (b != null) {
-                b.clear();
-            }
-            // The Rhino top-level scope is now shared and sealed across all
-            // engines, so per-engine cleanup there is both impossible and
-            // unnecessary: per-engine state lives only in the ENGINE_SCOPE
-            // bindings cleared above.
-        } catch (Throwable t) {
-            // best effort — the proxy-held engine's footprint just stays large
-        }
-        monkey = null;
+        session.close();
+        session = null;
         handler = NOOP_HANDLER;
         return true;
     }

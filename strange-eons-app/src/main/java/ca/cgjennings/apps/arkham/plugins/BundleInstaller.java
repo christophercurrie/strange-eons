@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import resources.*;
 import static resources.Language.string;
@@ -1271,13 +1272,27 @@ public class BundleInstaller {
      * plug-in starter to dispatch scripted plug-ins to a language.
      */
     static ScriptLanguage lookupScriptLanguage(String id) {
+        return findScriptLanguage(lang -> id.equals(lang.id()));
+    }
+
+    /**
+     * Finds a registered {@link ScriptLanguage} by file extension.
+     *
+     * @param extension the extension, including its leading dot
+     * @return the language that claims the extension, or {@code null}
+     */
+    public static ScriptLanguage lookupScriptLanguageForExtension(String extension) {
+        return findScriptLanguage(lang -> lang.fileExtensions().contains(extension));
+    }
+
+    private static ScriptLanguage findScriptLanguage(Predicate<ScriptLanguage> test) {
         for (ScriptLanguage lang : ServiceLoader.load(ScriptLanguage.class)) {
-            if (id.equals(lang.id())) {
+            if (test.test(lang)) {
                 return lang;
             }
         }
         for (ScriptLanguage lang : ServiceLoader.load(ScriptLanguage.class, libraryClassLoader)) {
-            if (id.equals(lang.id())) {
+            if (test.test(lang)) {
                 return lang;
             }
         }
@@ -1285,7 +1300,7 @@ public class BundleInstaller {
         // into classLoaderFor() while we're inside its computeIfAbsent.
         for (ClassLoader cl : isolatedClassLoaders.values()) {
             for (ScriptLanguage lang : ServiceLoader.load(ScriptLanguage.class, cl)) {
-                if (id.equals(lang.id())) {
+                if (test.test(lang)) {
                     return lang;
                 }
             }

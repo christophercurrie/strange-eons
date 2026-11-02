@@ -3,6 +3,7 @@ package ca.cgjennings.apps.arkham.plugins;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.mockito.Mockito;
 import org.strangeeons.scripts.ScriptException;
 import org.strangeeons.scripts.ScriptLanguage;
 import org.strangeeons.scripts.ScriptSession;
@@ -20,6 +21,9 @@ public class TestScriptLanguage implements ScriptLanguage {
 
     /** Captures the most recently created session so tests can inspect it. */
     public static volatile RecordingSession lastSession;
+
+    /** When set, {@code createHandler} on every session fails with this. */
+    public static volatile ScriptException nextHandlerFailure;
 
     /**
      * Returns to install on every newly created session's {@code returns}
@@ -63,6 +67,8 @@ public class TestScriptLanguage implements ScriptLanguage {
         public int evalCount;
         public String lastEvalSourceName;
         public boolean closed;
+        public String lastHandlerSpec;
+        public final java.util.List<String> optionalCalls = new java.util.ArrayList<>();
 
         @Override
         public Object eval(String source, String sourceName) {
@@ -81,12 +87,22 @@ public class TestScriptLanguage implements ScriptLanguage {
 
         @Override
         public Object callIfDefined(String name, Object... args) {
+            optionalCalls.add(name);
             return returns.get(name);
         }
 
         @Override
         public void bind(String name, Object value) {
             bindings.put(name, value);
+        }
+
+        @Override
+        public <T> T createHandler(String spec, Class<T> type) throws ScriptException {
+            lastHandlerSpec = spec;
+            if (nextHandlerFailure != null) {
+                throw nextHandlerFailure;
+            }
+            return Mockito.mock(type);
         }
 
         @Override
