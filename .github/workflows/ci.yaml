@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     name: build (${{ matrix.os }})
+    if: github.repository == 'strange-eons/strange-eons'
     strategy:
       fail-fast: false
       matrix:

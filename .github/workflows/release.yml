@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   parse-version:
+    if: github.repository == 'strange-eons/strange-eons'
     runs-on: ubuntu-latest
     outputs:
       major: ${{ steps.parse.outputs.major }}
