@@ -1,6 +1,7 @@
 package ca.cgjennings.apps.arkham.plugins.engine;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.Objects;
 import javax.script.Bindings;
@@ -98,7 +99,15 @@ final class EngineUtilities {
                 interfaceType.getClassLoader(),
                 new Class<?>[]{interfaceType},
                 (proxyInstance, method, args) -> {
-                    final Object result = engine.invokeMethod(thisObject, method.getName(), args);
+                    final Object result;
+                    try {
+                        result = engine.invokeMethod(thisObject, method.getName(), args);
+                    } catch (NoSuchMethodException e) {
+                        if (method.isDefault()) {
+                            return InvocationHandler.invokeDefault(proxyInstance, method, args);
+                        }
+                        throw e;
+                    }
                     final Class<?> returnType = method.getReturnType();
                     return returnType == Void.TYPE ? null : Context.jsToJava(result, returnType);
                 }

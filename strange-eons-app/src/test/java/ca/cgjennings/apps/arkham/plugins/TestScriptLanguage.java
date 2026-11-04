@@ -68,7 +68,7 @@ public class TestScriptLanguage implements ScriptLanguage {
         public String lastEvalSourceName;
         public boolean closed;
         public String lastHandlerSpec;
-        public final java.util.List<String> optionalCalls = new java.util.ArrayList<>();
+        public Object lastHandler;
 
         @Override
         public Object eval(String source, String sourceName) {
@@ -87,7 +87,6 @@ public class TestScriptLanguage implements ScriptLanguage {
 
         @Override
         public Object callIfDefined(String name, Object... args) {
-            optionalCalls.add(name);
             return returns.get(name);
         }
 
@@ -102,7 +101,9 @@ public class TestScriptLanguage implements ScriptLanguage {
             if (nextHandlerFailure != null) {
                 throw nextHandlerFailure;
             }
-            return Mockito.mock(type);
+            T handler = Mockito.mock(type);
+            lastHandler = handler;
+            return handler;
         }
 
         @Override

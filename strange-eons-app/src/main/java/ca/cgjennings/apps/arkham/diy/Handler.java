@@ -2,6 +2,7 @@ package ca.cgjennings.apps.arkham.diy;
 
 import ca.cgjennings.apps.arkham.component.Portrait;
 import ca.cgjennings.apps.arkham.component.PortraitProvider;
+import ca.cgjennings.apps.arkham.component.conversion.ConversionSession;
 import ca.cgjennings.io.SEObjectInputStream;
 import ca.cgjennings.io.SEObjectOutputStream;
 import java.awt.Graphics2D;
@@ -104,6 +105,32 @@ public interface Handler extends PortraitProvider {
      * the component
      */
     public void onWrite(DIY diy, ObjectOutputStream objectOutputStream);
+
+    /**
+     * Called on the component being replaced when it is converted to another
+     * component type, before {@link #onConvertTo} is called on the replacement.
+     * The default does nothing.
+     *
+     * @param diy the component being replaced
+     * @param session the conversion session
+     * @see ca.cgjennings.apps.arkham.component.GameComponent#convertFrom
+     * @since 3.6
+     */
+    default void onConvertFrom(DIY diy, ConversionSession session) {
+    }
+
+    /**
+     * Called on the replacement component when a component is converted to
+     * this component type, after {@link #onConvertFrom} is called on the
+     * component being replaced. The default does nothing.
+     *
+     * @param diy the replacement component
+     * @param session the conversion session
+     * @see ca.cgjennings.apps.arkham.component.GameComponent#convertTo
+     * @since 3.6
+     */
+    default void onConvertTo(DIY diy, ConversionSession session) {
+    }
 
     @Override
     public int getPortraitCount();

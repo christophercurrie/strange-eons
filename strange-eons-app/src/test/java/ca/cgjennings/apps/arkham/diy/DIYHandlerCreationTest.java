@@ -2,8 +2,11 @@ package ca.cgjennings.apps.arkham.diy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 
 import ca.cgjennings.apps.arkham.component.Portrait;
+import ca.cgjennings.apps.arkham.component.conversion.ConversionSession;
 import ca.cgjennings.apps.arkham.plugins.TestScriptLanguage;
 import java.awt.Graphics2D;
 import java.io.FileNotFoundException;
@@ -12,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.strangeeons.scripts.ScriptException;
 
 class DIYHandlerCreationTest {
@@ -77,16 +81,50 @@ class DIYHandlerCreationTest {
     }
 
     @Test
-    void conversionHooksGoThroughTheSession() throws IOException {
+    void conversionCallsTheScriptHandler() throws IOException {
         DIY diy = new DIY(SPEC, null, false);
+        Handler handler = (Handler) TestScriptLanguage.lastSession.lastHandler;
+        ConversionSession conversion = mock(ConversionSession.class);
+
+        diy.convertFrom(conversion);
+        diy.convertTo(conversion);
+
+        InOrder order = inOrder(handler);
+        order.verify(handler).onConvertFrom(diy, conversion);
+        order.verify(handler).onConvertTo(diy, conversion);
+    }
+
+    @Test
+    void conversionCallsAClassHandler() throws IOException {
+        DIY diy = new DIY(ConvertingHandler.class.getName(), null, false);
 
         diy.convertFrom(null);
         diy.convertTo(null);
 
-        assertThat(TestScriptLanguage.lastSession.optionalCalls).containsExactly("onConvertFrom", "onConvertTo");
+        assertThat(diy.getSettings().get("converted")).isEqualTo("from to");
     }
 
-    public static final class EmptyHandler implements Handler {
+    @Test
+    void classHandlerWithoutHooksConvertsQuietly() throws IOException {
+        DIY diy = new DIY(EmptyHandler.class.getName(), null, false);
+
+        diy.convertFrom(null);
+        diy.convertTo(null);
+    }
+
+    public static class ConvertingHandler extends EmptyHandler {
+        @Override
+        public void onConvertFrom(DIY diy, ConversionSession session) {
+            diy.getSettings().set("converted", "from");
+        }
+
+        @Override
+        public void onConvertTo(DIY diy, ConversionSession session) {
+            diy.getSettings().set("converted", diy.getSettings().get("converted") + " to");
+        }
+    }
+
+    public static class EmptyHandler implements Handler {
         @Override public void create(DIY diy) {}
         @Override public void createInterface(DIY diy, DIYEditor editor) {}
         @Override public void createFrontPainter(DIY diy, DIYSheet sheet) {}

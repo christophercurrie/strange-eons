@@ -2818,21 +2818,41 @@ public class DIY extends AbstractGameComponent implements Handler {
 
     @Override
     public void convertFrom(ConversionSession session) {
-        callConversionHook("onConvertFrom", session);
+        onConvertFrom(this, session);
     }
 
     @Override
     public void convertTo(ConversionSession session) {
-        callConversionHook("onConvertTo", session);
+        onConvertTo(this, session);
     }
 
-    private void callConversionHook(String hook, ConversionSession conversion) {
-        if (session != null) {
-            try {
-                session.callIfDefined(hook, this, conversion);
-            } catch (org.strangeeons.scripts.ScriptException e) {
-                ScriptMonkey.scriptError(e);
-            }
+    /**
+     * Calls the handler's {@code onConvertFrom}, reporting any error.
+     *
+     * @param diy the component being replaced
+     * @param session the conversion session
+     */
+    @Override
+    public void onConvertFrom(DIY diy, ConversionSession session) {
+        try {
+            handler.onConvertFrom(diy, session);
+        } catch (Throwable t) {
+            ScriptMonkey.scriptError(t);
+        }
+    }
+
+    /**
+     * Calls the handler's {@code onConvertTo}, reporting any error.
+     *
+     * @param diy the replacement component
+     * @param session the conversion session
+     */
+    @Override
+    public void onConvertTo(DIY diy, ConversionSession session) {
+        try {
+            handler.onConvertTo(diy, session);
+        } catch (Throwable t) {
+            ScriptMonkey.scriptError(t);
         }
     }
 
