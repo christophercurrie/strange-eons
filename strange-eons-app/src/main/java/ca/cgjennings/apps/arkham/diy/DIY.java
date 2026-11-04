@@ -322,6 +322,11 @@ public class DIY extends AbstractGameComponent implements Handler {
             return;
         }
 
+        String alias = getSettings().get(HANDLER_ALIAS_PREFIX + handlerScript);
+        if (alias != null && !alias.isEmpty()) {
+            handlerScript = alias;
+        }
+
         String extension = HandlerSpec.scriptExtension(handlerScript);
         if (extension != null) {
             ScriptLanguage language = BundleInstaller.lookupScriptLanguageForExtension(extension);
@@ -412,11 +417,28 @@ public class DIY extends AbstractGameComponent implements Handler {
      * is a script file, but it can also be the name of a class on the class
      * path that implements the {@code Handler} interface.
      *
+     * <p>
+     * If the component's settings define
+     * {@link #HANDLER_ALIAS_PREFIX}{@code + resource}, the handler is created
+     * from that setting's value instead, and the value replaces the resource.
+     * A plug-in that moves a handler sets this in its game's master settings
+     * so that saved components still open, and are saved with the new
+     * resource.
+     *
      * @return the resource used to create this component, or {@code null}
      */
     public String getHandlerScript() {
         return handlerScript;
     }
+
+    /**
+     * Prefix of the setting key that maps a handler resource to its
+     * replacement.
+     *
+     * @see #getHandlerScript()
+     * @since 3.6
+     */
+    public static final String HANDLER_ALIAS_PREFIX = "diy-handler-alias-";
 
     /**
      * Returns an extension name that can be reported to the user as the plug-in
