@@ -4,7 +4,7 @@ import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.plugins.BundleInstaller;
 import ca.cgjennings.apps.arkham.plugins.PluginBundle;
 import ca.cgjennings.apps.arkham.plugins.PluginRoot;
-import ca.cgjennings.io.EscapedTextCodec;
+import org.strangeeons.core.io.EscapedTextCodec;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;

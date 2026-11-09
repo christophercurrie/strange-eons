@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     }
 }
 
-include(":vendor", ":strange-eons-script-api", ":strange-eons-testkit", ":strange-eons-app")
+include(":vendor", ":strange-eons-script-api", ":strange-eons-core", ":strange-eons-testkit", ":strange-eons-app")

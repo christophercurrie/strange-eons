@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.project.ProjectUtilities;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 
 import java.io.IOException;
 import java.io.InputStream;

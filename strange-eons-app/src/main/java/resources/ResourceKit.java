@@ -32,7 +32,7 @@ import ca.cgjennings.graphics.shapes.AbstractVectorImage;
 import ca.cgjennings.graphics.shapes.SVGVectorImage;
 import ca.cgjennings.graphics.shapes.VectorIcon;
 import ca.cgjennings.graphics.shapes.VectorImage;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import ca.cgjennings.io.InvalidFileFormatException;
 import ca.cgjennings.io.SEObjectInputStream;
 import ca.cgjennings.io.SEObjectOutputStream;

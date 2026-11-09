@@ -5,7 +5,7 @@ import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
 import ca.cgjennings.apps.arkham.project.ProjectUtilities;
 import ca.cgjennings.io.Base64;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import ca.cgjennings.platform.PlatformFileSystem;
 import ca.cgjennings.ui.JUtilities;
 import ca.cgjennings.util.SortedProperties;

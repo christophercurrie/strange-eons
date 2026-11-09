@@ -1,7 +1,7 @@
 package ca.cgjennings.apps.arkham.dialog;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.text.LineWrapper;
+import org.strangeeons.core.text.LineWrapper;
 import ca.cgjennings.ui.JUtilities;
 import ca.cgjennings.ui.theme.ThemeInstaller;
 import java.awt.Component;

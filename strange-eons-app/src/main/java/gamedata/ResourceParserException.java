@@ -1,6 +1,6 @@
 package gamedata;
 
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 
 /**
  * An exception that may be thrown when an error occurs while parsing a resource
@@ -39,6 +39,16 @@ public class ResourceParserException extends RuntimeException {
         super(message);
         this.resource = resource;
         this.line = reader == null ? -1 : reader.getLineNumber();
+    }
+
+    /**
+     * Keeps binary compatibility with plug-ins compiled against the old reader.
+     *
+     * @deprecated Use {@link #ResourceParserException(String, String, EscapedLineReader)}.
+     */
+    @Deprecated(since = "3.6")
+    public ResourceParserException(String resource, String message, ca.cgjennings.io.EscapedLineReader reader) {
+        this(resource, message, (EscapedLineReader) reader);
     }
 
     /**

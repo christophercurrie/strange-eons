@@ -16,7 +16,7 @@ import ca.cgjennings.apps.arkham.project.Rename;
 import ca.cgjennings.apps.arkham.project.Task;
 import ca.cgjennings.imageio.ImageLayer;
 import ca.cgjennings.imageio.PSDImageReader;
-import ca.cgjennings.io.EscapedTextCodec;
+import org.strangeeons.core.io.EscapedTextCodec;
 import ca.cgjennings.layout.PageShape.CupShape;
 import ca.cgjennings.ui.JUtilities;
 import ca.cgjennings.util.SortedProperties;

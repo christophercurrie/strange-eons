@@ -6,7 +6,7 @@ import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.commands.AbstractCommand;
 import ca.cgjennings.apps.arkham.commands.Commands;
 import ca.cgjennings.i18n.IntegerPluralizer;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import ca.cgjennings.spelling.MultilanguageSupport;
 import ca.cgjennings.spelling.SpellingChecker;
 import ca.cgjennings.spelling.ui.JSpellingTextArea;

@@ -1,8 +1,8 @@
 package resources;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.io.EscapedLineReader;
-import ca.cgjennings.io.EscapedLineWriter;
+import org.strangeeons.core.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineWriter;
 import ca.cgjennings.platform.PlatformSupport;
 import ca.cgjennings.ui.textedit.CodeEditorBase;
 import java.io.File;

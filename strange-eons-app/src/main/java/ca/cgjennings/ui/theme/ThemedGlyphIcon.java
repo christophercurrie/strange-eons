@@ -3,7 +3,7 @@ package ca.cgjennings.ui.theme;
 import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.plugins.ScriptConsole;
 import ca.cgjennings.apps.arkham.plugins.ScriptMonkey;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Component;

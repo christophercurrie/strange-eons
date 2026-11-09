@@ -8,6 +8,7 @@
 - Add a root file editor option to choose where Make Bundle touches catalog IDs: in the project folder, or only in the bundled plug-in, which leaves the `eons-plugin` source file unchanged. A plug-in with no ID still has its new ID saved to the project folder.
 - Allow `--run` scripts to run without a display, when started with `-Djava.awt.headless=true`. A headless run has no application window or script console, starts libraries and extensions but not other plug-ins, and exits with status 1 if the script fails.
 - `--run` scripts no longer bring Strange Eons to the front or take focus on macOS.
+- Publish `org.strangeeons:strange-eons-core`, application code shared with plug-ins. `EscapedLineReader`, `EscapedLineWriter` and `EscapedTextCodec` move to `org.strangeeons.core.io`, and `LineWrapper` to `org.strangeeons.core.text`; the `ca.cgjennings` names remain, deprecated.
 - Publish `org.strangeeons:strange-eons-testkit`, test support for plug-ins. It starts with render comparison against reference masters (`ImageComparator`, `MasterPlan`).
 
 ## 3.5.1

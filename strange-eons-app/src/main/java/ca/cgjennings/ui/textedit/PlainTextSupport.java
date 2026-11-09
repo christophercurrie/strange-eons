@@ -1,7 +1,7 @@
 package ca.cgjennings.ui.textedit;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.text.LineWrapper;
+import org.strangeeons.core.text.LineWrapper;
 import java.awt.Point;
 import java.util.List;
 import java.util.logging.Level;

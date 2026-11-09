@@ -2,7 +2,7 @@ package gamedata;
 
 import ca.cgjennings.graphics.ImageUtilities;
 import ca.cgjennings.graphics.filters.AbstractPixelwiseFilter;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import ca.cgjennings.ui.IconProvider;
 import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
