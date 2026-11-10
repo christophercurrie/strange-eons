@@ -12,6 +12,7 @@
 - `res:` and `project:` URLs resolve through `org.strangeeons.core.resources.ResourceResolver` and work on any class path with `strange-eons-core`, including headless `--run` scripts.
 - Add `--project folder`: `project:` URLs resolve against it while no project is open.
 - The testkit adds `TestResources`, which resolves `res:` and `project:` URLs against a plug-in's source folders during tests.
+- `strange-eons-core` includes the image filters and blend modes (`ca.cgjennings.graphics.filters`, `ca.cgjennings.graphics.composites`), `ca.cgjennings.math`, and the split-join classes of `ca.cgjennings.algo`, under their existing names. `ImageUtilities` delegates its pixel format conversions to `org.strangeeons.core.graphics.ImageFormats`.
 - Publish `org.strangeeons:strange-eons-core`, application code shared with plug-ins. `EscapedLineReader`, `EscapedLineWriter` and `EscapedTextCodec` move to `org.strangeeons.core.io`, and `LineWrapper` to `org.strangeeons.core.text`; the `ca.cgjennings` names remain, deprecated.
 - Publish `org.strangeeons:strange-eons-testkit`, test support for plug-ins. It starts with render comparison against reference masters (`ImageComparator`, `MasterPlan`).
 
