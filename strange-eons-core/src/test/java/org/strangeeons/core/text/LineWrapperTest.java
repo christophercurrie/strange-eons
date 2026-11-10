@@ -1,6 +1,7 @@
 package org.strangeeons.core.text;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,14 @@ class LineWrapperTest {
     void spacesAfterTheBreakStayOnTheFirstLine() {
         LineWrapper w = new LineWrapper("|", 5, 5, 0);
         assertThat(w.wrap("aaaa   bbbb cccc")).isEqualTo("aaaa   |bbbb |cccc");
+    }
+
+    @Test
+    void rejectsInvalidSettings() {
+        LineWrapper w = new LineWrapper();
+        assertThatThrownBy(() -> w.setWrapLengthTolerance(-1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> w.setFirstLineWrapLength(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> w.setFollowingLineWrapLength(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

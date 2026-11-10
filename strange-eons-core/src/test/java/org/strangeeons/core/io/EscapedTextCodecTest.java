@@ -54,21 +54,23 @@ class EscapedTextCodecTest {
     }
 
     @Test
-    void trailingBackslashIsNotEscaped() {
-        assertThat(EscapedTextCodec.escape("a\\b\\", BACKSLASH)).isEqualTo("a\\\\b\\");
+    void trailingBackslashIsEscaped() {
+        assertThat(EscapedTextCodec.escape("a\\b\\", BACKSLASH)).isEqualTo("a\\\\b\\\\");
+        assertThat(EscapedTextCodec.isWrappedLine(EscapedTextCodec.escape("a\\", BACKSLASH))).isFalse();
     }
 
     @Test
     void unescapesWhatItEscapes() {
-        String s = "tab\tnew\nret\rff\f space é ✓";
-        int flags = UNICODE | SPACE | USE_S_ESCAPE | WHITESPACE;
-        assertThat(EscapedTextCodec.unescape(EscapedTextCodec.escape(s, flags))).isEqualTo(s);
+        String s = "#tab\tnew\nret\rff\f back\\slash é ✓ = : # !\\";
+        int all = UNICODE | SPACE | ASSIGNMENT | INITIAL_COMMENT | WHITESPACE | BACKSLASH;
+        assertThat(EscapedTextCodec.unescape(EscapedTextCodec.escape(s, all))).isEqualTo(s);
+        assertThat(EscapedTextCodec.unescape(EscapedTextCodec.escape(s, all | USE_S_ESCAPE))).isEqualTo(s);
         assertThat(EscapedTextCodec.unescape("a\\sb")).isEqualTo("a b");
     }
 
     @Test
     void unknownEscapesPassThroughUnescape() {
-        assertThat(EscapedTextCodec.unescape("\\\\ \\= \\: \\# \\  \\")).isEqualTo("\\\\ \\= \\: \\# \\  \\");
+        assertThat(EscapedTextCodec.unescape("\\q \\\"x\\\" \\")).isEqualTo("\\q \\\"x\\\" \\");
     }
 
     @Test

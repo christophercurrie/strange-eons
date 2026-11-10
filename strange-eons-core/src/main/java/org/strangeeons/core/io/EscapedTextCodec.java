@@ -151,7 +151,7 @@ public final class EscapedTextCodec {
         for (int i = unescapedLength; i < slength; ++i) {
             char c = s.charAt(i);
             if (c > 0x3d && c < 0x7f) {
-                if (c == '\\' && i < slength - 1 && (escapeFlags & BACKSLASH) != 0) {
+                if (c == '\\' && (escapeFlags & BACKSLASH) != 0) {
                     b.append('\\').append('\\');
                     continue;
                 }
@@ -301,9 +301,10 @@ public final class EscapedTextCodec {
     }
 
     /**
-     * Returns a string equivalent to {@code s}, but with all escapeUnicode
-     * sequences converted back to regular (unescaped) characters. If the input
-     * does not contain any escapeUnicode sequences, it is returned unchanged.
+     * Returns a string equivalent to {@code s}, but with the escape sequences
+     * produced by {@link #escape} converted back to regular (unescaped)
+     * characters. Other backslash sequences are kept as is. If the input does
+     * not contain any escape sequences, it is returned unchanged.
      *
      * @param s the string to convert
      * @return the unescaped string
@@ -366,6 +367,14 @@ public final class EscapedTextCodec {
                                 break;
                             case 'f':
                                 b.append('\f');
+                                break;
+                            case '\\':
+                            case ' ':
+                            case '=':
+                            case ':':
+                            case '#':
+                            case '!':
+                                b.append(s.charAt(i + 1));
                                 break;
                             default:
                                 // not a known escapeUnicode; leave it unchanged,

@@ -149,14 +149,15 @@ public class EscapedLineWriter extends BufferedWriter {
     }
 
     /**
-     * Writes a key, value string pair with escaping and line breaking.
+     * Writes a key, value string pair with escaping and line breaking. Equals
+     * signs in the key are escaped so that the pair reads back intact.
      *
      * @param key the name of the key
      * @param value the value of the key
      * @throws IOException if an I/O error occurs
      */
     public void writeProperty(String key, String value) throws IOException {
-        writeWrapped(escapeLine(key) + " = " + escape(value));
+        writeWrapped(escapeLine(key).replace("=", "\\=") + " = " + escape(value));
     }
 
     /**

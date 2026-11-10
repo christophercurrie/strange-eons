@@ -58,7 +58,7 @@ class EscapedLineReaderTest {
 
     @Test
     void escapedBackslashDoesNotContinue() throws IOException {
-        assertThat(lines("a\\\\\nb")).containsExactly("a\\\\", "b");
+        assertThat(lines("a\\\\\nb")).containsExactly("a\\", "b");
     }
 
     @Test
@@ -68,8 +68,30 @@ class EscapedLineReaderTest {
     }
 
     @Test
-    void keepsEscapedBackslashesForLaterProcessing() {
-        assertThat(EscapedLineReader.unescapeLine("\\\\")).isEqualTo("\\\\");
+    void unescapesBackslashes() {
+        assertThat(EscapedLineReader.unescapeLine("\\\\")).isEqualTo("\\");
+        assertThat(EscapedLineReader.unescapeLine("C:\\\\dir\\\\")).isEqualTo("C:\\dir\\");
+        assertThat(EscapedLineReader.unescapeLine("\\\\u0041")).isEqualTo("\\u0041");
+    }
+
+    @Test
+    void unescapesPunctuationWithoutLosingText() {
+        assertThat(EscapedLineReader.unescapeLine("a\\=b\\:c\\#d\\!e")).isEqualTo("a=b:c#d!e");
+        assertThat(EscapedLineReader.unescapeLine("\\u00A1Hola\\!")).isEqualTo("¡Hola!");
+    }
+
+    @Test
+    void escapedCommentCharacterStartsLine() throws IOException {
+        assertThat(lines("\\# not a comment\n\\!bang")).containsExactly("# not a comment", "!bang");
+    }
+
+    @Test
+    void escapedEqualsStaysInKey() throws IOException {
+        try (EscapedLineReader r = reader("a\\=b = c\nx\\\\ = y\nd\\\\\\=e = f")) {
+            assertThat(r.readProperty()).containsExactly("a=b", "c");
+            assertThat(r.readProperty()).containsExactly("x\\", "y");
+            assertThat(r.readProperty()).containsExactly("d\\=e", "f");
+        }
     }
 
     @Test

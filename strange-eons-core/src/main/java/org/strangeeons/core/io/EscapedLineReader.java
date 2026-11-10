@@ -175,9 +175,10 @@ public class EscapedLineReader extends LineNumberReader {
      * \r, \t, and \f are replaced by a newline, return, tab, or formfeed
      * character, respectively. The sequence \u0000 (where 0000 is a sequence of
      * four hexadecimal digits) is replaced by the 16-bit Unicode character with
-     * the specified value. A backslash followed by any other character
-     * (including another backslash) is replaced by the following character,
-     * effectively deleting the initial backslash.
+     * the specified value. The sequences \\, \=, \:, \#, \!, \s, and a
+     * backslash followed by a space are replaced by the escaped character (a
+     * space for \s). A backslash followed by any other character is kept as
+     * is, for processing by the caller.
      * <p>
      * Lines whose first non-whitespace character is '#' or '!' are considered
      * comments and will be skipped. If a line continuation backslash occurs
@@ -261,7 +262,11 @@ public class EscapedLineReader extends LineNumberReader {
                 return new String[]{line.trim(), ""};
             }
 
-            if (div == 0 || line.charAt(div - 1) != '\\') {
+            int slashes = 0;
+            while (div - slashes > 0 && line.charAt(div - slashes - 1) == '\\') {
+                ++slashes;
+            }
+            if ((slashes & 1) == 0) {
                 break;
             }
             ++div;
@@ -421,11 +426,12 @@ public class EscapedLineReader extends LineNumberReader {
                         case ' ':
                             buff[bi++] = ' ';
                             break;
+                        case '\\':
                         case ':':
                         case '=':
                         case '#':
                         case '!':
-                            buff[i++] = c;
+                            buff[bi++] = c;
                             break;
                         case 'u':
                             ++i; // skip the 'u'

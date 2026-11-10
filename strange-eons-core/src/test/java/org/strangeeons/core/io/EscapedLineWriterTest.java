@@ -52,8 +52,11 @@ class EscapedLineWriterTest {
         Map<String, String> props = new LinkedHashMap<>();
         props.put("text", "line one\nline two\ttabbed");
         props.put("accent", "café ✓");
+        props.put("path", "C:\\dir\\file\\");
+        props.put("#key", "!value");
+        props.put("a=b", "c=d: e");
         String text = write(true, w -> w.writeProperties(props));
-        assertThat(text).contains("\\n", "\\t", "\\u00e9", "\\u2713").startsWith("text = ");
+        assertThat(text).contains("\\n", "\\t", "\\u00e9", "\\u2713", "\n\\#key = !value").startsWith("text = ");
         assertThat(read(text)).isEqualTo(props);
     }
 
@@ -87,7 +90,7 @@ class EscapedLineWriterTest {
         });
         assertThat(text).isEqualTo("# one\n# two\n# three\n  \\# plain");
         try (EscapedLineReader r = new EscapedLineReader(new StringReader(text))) {
-            r.readLine();
+            assertThat(r.readLine()).isEqualTo("# plain");
             assertThat(r.getFirstCommentBlock()).isEqualTo("one\ntwo\nthree");
         }
     }

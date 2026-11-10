@@ -120,9 +120,10 @@ public class LineWrapper {
      * Sets how far past the ideal length a line may run before it is wrapped.
      *
      * @param tolerance the tolerance, in characters
+     * @throws IllegalArgumentException if the tolerance is negative
      */
     public void setWrapLengthTolerance(int tolerance) {
-        if (firstWrap < 0) {
+        if (tolerance < 0) {
             throw new IllegalArgumentException("tolerance must be >=0");
         }
         this.tolerance = tolerance;
