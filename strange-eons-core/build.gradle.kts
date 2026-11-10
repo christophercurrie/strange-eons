@@ -1,5 +1,6 @@
 // Application code shared with plug-ins and their builds. No app dependencies;
-// strange-eons-app depends on this module.
+// strange-eons-app depends on this module. Targets Java 17 because the testkit,
+// which Gradle plug-ins load in the build JVM, depends on it.
 
 plugins {
     `java-library`
@@ -11,6 +12,10 @@ mavenPublishing {
         name = "Strange Eons Core"
         description = "Strange Eons code shared by the application and plug-ins."
     }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release = 17
 }
 
 dependencies {

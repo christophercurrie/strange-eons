@@ -2464,8 +2464,8 @@ public final class StrangeEons {
         System.setProperty("http.agent", "StrangeEons/" + StrangeEons.getBuildNumber());
         // init proxy support
         NetworkProxy.install();
-        // install custom protocol handlers
-        ca.cgjennings.io.protocols.MappedURLHandler.install();
+        // resolve res: and project: URLs with the app's resource search
+        ResourceKit.installResourceResolver();
     }
 
     /**

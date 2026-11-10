@@ -9,6 +9,9 @@
 - Allow `--run` scripts to run without a display, when started with `-Djava.awt.headless=true`. A headless run has no application window or script console, starts libraries and extensions but not other plug-ins, and exits with status 1 if the script fails.
 - `--run` scripts no longer bring Strange Eons to the front or take focus on macOS.
 - Fix escaped resource files (class maps, tile sets, silhouettes, project task settings and view state): `\=`, `\:`, `\#` and `\!` no longer drop text, `\\` reads as one backslash, and values the app writes read back unchanged.
+- `res:` and `project:` URLs resolve through `org.strangeeons.core.resources.ResourceResolver` and work on any class path with `strange-eons-core`, including headless `--run` scripts.
+- Add `--project folder`: `project:` URLs resolve against it while no project is open.
+- The testkit adds `TestResources`, which resolves `res:` and `project:` URLs against a plug-in's source folders during tests.
 - Publish `org.strangeeons:strange-eons-core`, application code shared with plug-ins. `EscapedLineReader`, `EscapedLineWriter` and `EscapedTextCodec` move to `org.strangeeons.core.io`, and `LineWrapper` to `org.strangeeons.core.text`; the `ca.cgjennings` names remain, deprecated.
 - Publish `org.strangeeons:strange-eons-testkit`, test support for plug-ins. It starts with render comparison against reference masters (`ImageComparator`, `MasterPlan`).
 
