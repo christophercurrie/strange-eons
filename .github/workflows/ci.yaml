@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     name: build (${{ matrix.os }})
+    if: github.repository == 'strange-eons/strange-eons'
     strategy:
       fail-fast: false
       matrix:
@@ -61,7 +62,6 @@ jobs:
           name: jvm-crash-reports-${{ matrix.os }}
           path: "**/hs_err_pid*.log"
           if-no-files-found: ignore
-      - name: Verify library publications
         if: matrix.os == 'ubuntu-latest'
         run: |
           ./gradlew --no-daemon \
@@ -72,7 +72,7 @@ jobs:
 
   publish-snapshot:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository == 'strange-eons/strange-eons' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: maven-central
     steps:

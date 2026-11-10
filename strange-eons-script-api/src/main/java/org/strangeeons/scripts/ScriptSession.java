@@ -59,6 +59,25 @@ public interface ScriptSession extends AutoCloseable {
     void bind(String name, Object value);
 
     /**
+     * Instantiates an object defined by a script and returns it as an
+     * implementation of a host interface. The object must remain usable until
+     * {@link #close()}, including from threads other than the caller's.
+     *
+     * @param spec the location of the script and the exported name of the
+     *     class to construct, as {@code path/to/script.ext:ExportedName}
+     * @param type the interface to implement
+     * @return an implementation of {@code type} backed by the new object
+     * @throws ScriptException if the script fails to load or does not define
+     *     the named class
+     * @throws UnsupportedOperationException if the language does not support
+     *     script-defined handlers
+     * @since 3.6
+     */
+    default <T> T createHandler(String spec, Class<T> type) throws ScriptException {
+        throw new UnsupportedOperationException("script-defined handlers: " + spec);
+    }
+
+    /**
      * Releases the session and any resources held by the underlying
      * runtime. Implementations must accept repeated calls without raising.
      */
