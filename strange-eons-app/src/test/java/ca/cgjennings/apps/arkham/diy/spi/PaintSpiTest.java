@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.strangeeons.plugins.SettingsReader;
 import org.strangeeons.plugins.graphics.ImageHandle;
+import org.strangeeons.core.graphics.awt.AwtMarkupRenderer;
 import org.strangeeons.plugins.graphics.MarkupRenderer;
 import org.strangeeons.plugins.graphics.TextStyle;
 import resources.Settings;
@@ -132,25 +133,25 @@ class PaintSpiTest {
         try (MockedStatic<Sheet> sheets = mockStatic(Sheet.class)) {
             MarkupRenderer renderer = new ConventionalDIYFace(sheet).createMarkupRenderer();
 
-            sheets.verify(() -> Sheet.doStandardRendererInitialization(
-                    (ca.cgjennings.layout.MarkupRenderer) renderer));
-            assertThat(renderer).isInstanceOf(ca.cgjennings.layout.MarkupRenderer.class);
+            assertThat(renderer).isInstanceOf(AwtMarkupRenderer.class);
+            ca.cgjennings.layout.MarkupRenderer legacy = ((AwtMarkupRenderer) renderer).renderer();
+            sheets.verify(() -> Sheet.doStandardRendererInitialization(legacy));
         }
     }
 
     @Test
     void replacementTagGoesThroughSpi() {
-        MarkupRenderer renderer = new ca.cgjennings.layout.MarkupRenderer(150d);
+        AwtMarkupRenderer renderer = new AwtMarkupRenderer(new ca.cgjennings.layout.MarkupRenderer(150d));
 
         renderer.setReplacementForTag("fdk", "<image res://x.png>");
 
-        assertThat(((ca.cgjennings.layout.MarkupRenderer) renderer).getReplacementForTag("fdk"))
+        assertThat(renderer.renderer().getReplacementForTag("fdk"))
                 .isEqualTo("<image res://x.png>");
     }
 
     @Test
     void nullShapeRestoresRectangle() {
-        MarkupRenderer renderer = new ca.cgjennings.layout.MarkupRenderer(150d);
+        MarkupRenderer renderer = new AwtMarkupRenderer(new ca.cgjennings.layout.MarkupRenderer(150d));
         renderer.setPageShape(reader.readPageShape("none"));
 
         assertThat(renderer.getPageShape()).isSameAs(PageShape.RECTANGLE_SHAPE);

@@ -1,6 +1,8 @@
-package ca.cgjennings.layout;
+package org.strangeeons.core.graphics.awt;
 
-import org.strangeeons.core.graphics.awt.AwtGraphics;
+import ca.cgjennings.layout.MarkupRenderer;
+import ca.cgjennings.layout.PageShape;
+import ca.cgjennings.layout.TextStyle;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.font.TextAttribute;
@@ -11,24 +13,27 @@ import org.strangeeons.plugins.graphics.Graphics;
 import org.strangeeons.plugins.graphics.Region;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class MarkupRendererSpiTest {
+class AwtMarkupRendererTest {
 
     private BufferedImage canvas;
     private Graphics2D g2;
     private AwtGraphics g;
-    private MarkupRenderer mr;
+    private MarkupRenderer legacy;
+    private AwtMarkupRenderer mr;
 
     @BeforeEach
     void setUp() {
         canvas = new BufferedImage(200, 200, BufferedImage.TYPE_INT_ARGB);
         g2 = canvas.createGraphics();
         g = new AwtGraphics(g2);
-        mr = new MarkupRenderer();
+        legacy = new MarkupRenderer();
+        mr = new AwtMarkupRenderer(legacy);
         TextStyle defaultStyle = new TextStyle(
                 TextAttribute.FAMILY, "Dialog",
                 TextAttribute.SIZE, 12.0f,
@@ -38,10 +43,22 @@ class MarkupRendererSpiTest {
     }
 
     @Test
-    void legacyClassImplementsSpiMarkupRenderer() {
-        org.strangeeons.plugins.graphics.MarkupRenderer spi = mr;
-        assertNotNull(spi);
-        assertSame(mr, spi);
+    void wrapsTheLegacyRenderer() {
+        assertSame(legacy, mr.renderer());
+        assertEquals("Hello, world.", legacy.getMarkupText());
+        assertThrows(NullPointerException.class, () -> new AwtMarkupRenderer(null));
+    }
+
+    @Test
+    void legacyRendererHasNoSpiOverloads() {
+        // scripts calling setPageShape(null) and similar must not become ambiguous
+        assertFalse(org.strangeeons.plugins.graphics.MarkupRenderer.class.isAssignableFrom(MarkupRenderer.class));
+        for (String name : new String[]{"setPageShape", "setDefaultStyle", "setStyleForTag", "draw",
+            "drawAsSingleLine", "measure"}) {
+            long overloads = java.util.Arrays.stream(MarkupRenderer.class.getMethods())
+                    .filter(m -> m.getName().equals(name)).count();
+            assertEquals(1, overloads, name);
+        }
     }
 
     @Test
@@ -84,6 +101,35 @@ class MarkupRendererSpiTest {
         assertEquals(
                 org.strangeeons.plugins.graphics.MarkupRenderer.FIT_TIGHTEN_LINE_SPACING,
                 mr.getTextFitting());
+    }
+
+    @Test
+    void acceptsNullStylesAndShapes() {
+        mr.setPageShape(null);
+        assertSame(PageShape.RECTANGLE_SHAPE, mr.getPageShape());
+        mr.setStyleForTag("none", null);
+        mr.setReplacementForTag("who", "you");
+        mr.setMarkupText("<who>");
+        assertEquals("<who>", mr.getMarkupText());
+    }
+
+    @Test
+    void rejectsForeignStylesAndShapes() {
+        org.strangeeons.plugins.graphics.TextStyle foreignStyle = new org.strangeeons.plugins.graphics.TextStyle() {
+            @Override
+            public String getFamily() {
+                return null;
+            }
+
+            @Override
+            public void setFamily(String family) {
+            }
+        };
+        assertThrows(IllegalArgumentException.class, () -> mr.setDefaultStyle(foreignStyle));
+        assertThrows(IllegalArgumentException.class,
+                () -> mr.setPageShape(new org.strangeeons.plugins.graphics.PageShape() {
+                }));
+        assertThrows(IllegalArgumentException.class, () -> mr.draw(null, new Region(0, 0, 1, 1)));
     }
 
     @Test

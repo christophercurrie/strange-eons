@@ -4,6 +4,7 @@ import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYSheet;
 import ca.cgjennings.apps.arkham.sheet.Sheet;
 import org.strangeeons.core.graphics.awt.AwtImageHandle;
+import org.strangeeons.core.graphics.awt.AwtMarkupRenderer;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 import org.strangeeons.plugins.SettingsReadWrite;
@@ -84,6 +85,6 @@ public final class ConventionalDIYFace implements Face {
         ca.cgjennings.layout.MarkupRenderer renderer
                 = new ca.cgjennings.layout.MarkupRenderer(sheet.getTemplateResolution());
         Sheet.doStandardRendererInitialization(renderer);
-        return renderer;
+        return new AwtMarkupRenderer(renderer);
     }
 }
