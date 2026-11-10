@@ -1,6 +1,7 @@
 package ca.cgjennings.graphics.composites;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.awt.Composite;
 import java.awt.Graphics2D;
@@ -84,6 +85,34 @@ class BlendModeTest {
     void lightenAndDarkenPickChannels() {
         assertThat(blend(BlendMode.Lighten, 0xff204060, 0xff602040) & 0xffffff).isEqualTo(0x604060);
         assertThat(blend(BlendMode.Darken, 0xff204060, 0xff602040) & 0xffffff).isEqualTo(0x202040);
+    }
+
+    @Test
+    void everyBlendModeDerivesACopyWithNewAlpha() throws IllegalAccessException {
+        for (Field f : BlendMode.class.getFields()) {
+            if (Modifier.isStatic(f.getModifiers()) && BlendMode.class.isAssignableFrom(f.getType())) {
+                BlendMode mode = (BlendMode) f.get(null);
+                AbstractARGBComposite half = mode.derive(0.5f);
+                assertThat(half).as(f.getName()).isNotSameAs(mode).hasSameClassAs(mode);
+                assertThat(half.getAlpha()).as(f.getName()).isEqualTo(0.5f);
+                assertThat(mode.getAlpha()).as(f.getName()).isEqualTo(1f);
+            }
+        }
+    }
+
+    @Test
+    void derivedCompositesHonorAlpha() {
+        assertThat(blend(BlendMode.Lighten.derive(0f), 0xff204060, 0xff602040) & 0xffffff).isEqualTo(0x204060);
+        assertThat(blend(BlendMode.Lighten.derive(1f), 0xff204060, 0xff602040) & 0xffffff).isEqualTo(0x604060);
+        assertThatThrownBy(() -> BlendMode.Lighten.derive(1.5f)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> BlendMode.Lighten.derive(-0.5f)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void derivedMaskKeepsItsChannelMask() {
+        MaskComposite redOnly = new MaskComposite(1f, 0f, 0f, 1f);
+        AbstractARGBComposite derived = redOnly.derive(1f);
+        assertThat(blend(derived, 0xff000000, 0xffffffff)).isEqualTo(blend(redOnly, 0xff000000, 0xffffffff));
     }
 
     @Test

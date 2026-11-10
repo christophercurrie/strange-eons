@@ -6,7 +6,6 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * An abstract base class for composites that support compositing (A)RGB image
@@ -16,7 +15,7 @@ import java.lang.reflect.InvocationTargetException;
  *
  * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
-public abstract class AbstractARGBComposite implements Composite {
+public abstract class AbstractARGBComposite implements Composite, Cloneable {
 
     protected float alpha;
 
@@ -31,15 +30,22 @@ public abstract class AbstractARGBComposite implements Composite {
         this.alpha = alpha;
     }
 
+    /**
+     * Returns a copy of this composite with a different alpha.
+     *
+     * @param alpha the alpha of the copy, from 0 to 1 inclusive
+     * @return a copy of this composite with the given alpha
+     * @throws IllegalArgumentException if alpha is out of range
+     */
     public AbstractARGBComposite derive(float alpha) {
         if (alpha < 0f || alpha > 1f) {
             throw new IllegalArgumentException("alpha must be between 0 and 1 inclusive: " + alpha);
         }
         AbstractARGBComposite comp;
         try {
-            comp = getClass().getConstructor().newInstance();
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException ex) {
-            throw new RuntimeException("unable to instantiate class for derivation", ex);
+            comp = (AbstractARGBComposite) super.clone();
+        } catch (CloneNotSupportedException ex) {
+            throw new AssertionError(ex);
         }
         comp.alpha = alpha;
         return comp;
