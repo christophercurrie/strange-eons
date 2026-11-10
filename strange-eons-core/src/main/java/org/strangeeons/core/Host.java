@@ -96,6 +96,19 @@ public interface Host {
     }
 
     /**
+     * Evaluates the script code in a braced text style value, such as
+     * {@code FOREGROUND: {new Color(0, 0, 0)}}. The default does not run
+     * scripts.
+     *
+     * @param code the code between the braces
+     * @return the value of the code
+     * @throws UnsupportedOperationException if scripts are not available
+     */
+    default Object evaluateStyleLiteral(String code) {
+        throw new UnsupportedOperationException("script values in text styles need a script engine: {" + code + "}");
+    }
+
+    /**
      * Returns the locale of game component text. The default is the JVM's
      * default locale.
      *

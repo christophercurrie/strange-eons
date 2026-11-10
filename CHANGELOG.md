@@ -11,6 +11,7 @@
 - Fix escaped resource files (class maps, tile sets, silhouettes, project task settings and view state): `\=`, `\:`, `\#` and `\!` no longer drop text, `\\` reads as one backslash, and values the app writes read back unchanged.
 - `res:` and `project:` URLs resolve through `org.strangeeons.core.resources.ResourceResolver` and work on any class path with `strange-eons-core`, including headless `--run` scripts.
 - Add `--project folder`: `project:` URLs resolve against it while no project is open.
+- Setting value parsers (yes/no, integers, numbers, cup shapes, text alignment, text styles) move to `org.strangeeons.core.settings.SettingValues`; `Settings` delegates to them. Script values in text styles are evaluated through `Host.evaluateStyleLiteral`.
 - The testkit adds `MarkupImages`, which renders markup to an image with sheet export hints, and `MasterImages`, which checks rendered images against masters (`-Dstrangeeons.updateMasters=true` records them). `ImageComparator` can compare one image with a master file.
 - The testkit adds `TestResources`, which resolves `res:` and `project:` URLs against a plug-in's source folders during tests.
 - `strange-eons-core` includes the image filters and blend modes (`ca.cgjennings.graphics.filters`, `ca.cgjennings.graphics.composites`), `ca.cgjennings.math`, and the split-join classes of `ca.cgjennings.algo`, under their existing names. `ImageUtilities` delegates its pixel format conversions to `org.strangeeons.core.graphics.ImageFormats`.

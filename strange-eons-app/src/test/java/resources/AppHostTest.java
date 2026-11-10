@@ -47,4 +47,31 @@ class AppHostTest {
         Locale loc = Language.getGameLocale();
         assertThat(host.getGameLocale()).isEqualTo(loc == null ? Locale.getDefault() : loc);
     }
+
+    @Test
+    void settingsStylesKeepApplicationColours() {
+        Host previous = Host.get();
+        try {
+            Host.set(host);
+            ca.cgjennings.layout.TextStyle style = Settings.textStyle("foreground: #ff0000; size: 12", null);
+            assertThat(style.get(java.awt.font.TextAttribute.FOREGROUND)).isInstanceOf(Settings.Colour.class);
+        } finally {
+            Host.set(previous);
+        }
+    }
+
+    @Test
+    void badSettingValuesStillRaiseParseErrors() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Settings.integer("seven"))
+                .isInstanceOf(Settings.ParseError.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Settings.textAlignment("sideways"))
+                .isInstanceOf(Settings.ParseError.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Settings.cupShape("1,2"))
+                .isInstanceOf(Settings.ParseError.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Settings.textStyle("bogus: 1", null))
+                .isInstanceOf(Settings.ParseError.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Settings.number("two"))
+                .isInstanceOf(Settings.ParseError.class);
+        assertThat(Settings.yesNo("yes")).isTrue();
+    }
 }

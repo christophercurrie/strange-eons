@@ -40,8 +40,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,6 +57,7 @@ import java.util.regex.Pattern;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import org.strangeeons.core.graphics.ColorFormat;
+import org.strangeeons.core.settings.SettingValues;
 import static resources.Language.string;
 
 /**
@@ -767,14 +766,7 @@ public class Settings implements Serializable, Iterable<String>,
      * sensitive)
      */
     public static boolean yesNo(String value) {
-        boolean answer = false;
-        if (value != null) {
-            value = value.trim();
-            if (value.equalsIgnoreCase("yes") || value.equalsIgnoreCase("true") || value.equals("1")) {
-                answer = true;
-            }
-        }
-        return answer;
+        return SettingValues.yesNo(value);
     }
 
     /**
@@ -851,22 +843,8 @@ public class Settings implements Serializable, Iterable<String>,
 
     private static int integerImpl(String key, String value) {
         try {
-            value = value.trim();
-            return Integer.decode(value);
+            return SettingValues.integer(value);
         } catch (Throwable t) {
-            if (value != null) {
-                int decimal = value.indexOf('.');
-                if (decimal >= 0) {
-                    if (decimal == 0) {
-                        return 0;
-                    }
-                    try {
-                        return Integer.decode(value.substring(0, decimal));
-                    } catch (Throwable t2) {
-                        /* will throw below */
-                    }
-                }    
-            }
             throw new ParseError("rk-err-int", key, value, t);
         }
     }
@@ -976,7 +954,7 @@ public class Settings implements Serializable, Iterable<String>,
 
     private static double doubleImpl(String key, String value) {
         try {
-            return Double.parseDouble(value.trim());
+            return SettingValues.number(value);
         } catch (Throwable t) {
             throw new ParseError("rk-err-float", key, value, t);
         }
@@ -1707,18 +1685,7 @@ public class Settings implements Serializable, Iterable<String>,
 
     private static PageShape.CupShape cupShapeImpl(String key, String value) {
         try {
-            value = value.trim();
-            String[] comps = LIST_SPLITTER.split(value);
-            if (comps.length != 5) {
-                throw new IllegalArgumentException("need 5 values");
-            }
-            return new PageShape.CupShape(
-                    Double.parseDouble(comps[0]),
-                    Double.parseDouble(comps[1]),
-                    Double.parseDouble(comps[2]),
-                    Double.parseDouble(comps[3]),
-                    Double.parseDouble(comps[4])
-            );
+            return SettingValues.cupShape(value);
         } catch (Exception e) {
             throw new ParseError("rk-err-shape", key, value, e);
         }
@@ -1886,37 +1853,7 @@ public class Settings implements Serializable, Iterable<String>,
 
     private static int textAlignmentImpl(String key, String value) {
         try {
-            int valign = MarkupRenderer.LAYOUT_TOP;
-            int halign = MarkupRenderer.LAYOUT_LEFT;
-            int justify = 0;
-            if (value != null) {
-                String[] tokens = LIST_SPLITTER.split(value.trim());
-                for (String token : tokens) {
-                    if (token.isEmpty()) {
-                        continue;
-                    }
-                    if (token.equalsIgnoreCase("left")) {
-                        halign = MarkupRenderer.LAYOUT_LEFT;
-                    } else if (token.equalsIgnoreCase("right")) {
-                        halign = MarkupRenderer.LAYOUT_RIGHT;
-                    } else if (token.equalsIgnoreCase("center") || token.equalsIgnoreCase("centre")) {
-                        halign = MarkupRenderer.LAYOUT_CENTER;
-                    } else if (token.equalsIgnoreCase("top")) {
-                        valign = MarkupRenderer.LAYOUT_TOP;
-                    } else if (token.equalsIgnoreCase("bottom")) {
-                        valign = MarkupRenderer.LAYOUT_BOTTOM;
-                    } else if (token.equalsIgnoreCase("middle")) {
-                        valign = MarkupRenderer.LAYOUT_MIDDLE;
-                    } else if (token.equalsIgnoreCase("justified")) {
-                        justify = MarkupRenderer.LAYOUT_JUSTIFY;
-                    } else if (token.equalsIgnoreCase("unjustified") || token.equalsIgnoreCase("ragged")) {
-                        justify = 0;
-                    } else {
-                        throw new IllegalArgumentException("unknown token: " + token);
-                    }
-                }
-            }
-            return valign | halign | justify;
+            return SettingValues.textAlignment(value);
         } catch (Exception e) {
             throw new ParseError("rk-err-alignment", key, value);
         }
@@ -2016,128 +1953,10 @@ public class Settings implements Serializable, Iterable<String>,
 
     private static TextStyle textStyleImpl(String key, String value, TextStyle base) {
         try {
-            if (base == null) {
-                base = new TextStyle();
-            }
-            int s = 0;
-            while (s < value.length()) {
-                s = nextStyle(base, value, s);
-            }
-            return base;
+            return SettingValues.textStyle(value, base, Settings::colour);
         } catch (Throwable t) {
             throw new ParseError("rk-err-style", key, value, t);
         }
-    }
-
-    private static int nextStyle(TextStyle base, String styleDesc, int s) {
-        // Format is KEY1: VALUE1; KEY2: VALUE2; ...
-        int attr = styleDesc.indexOf(':', s);
-        if (attr >= 0) {
-            String keyName = cleanStyleKey(styleDesc.substring(s, attr).trim());
-            Object key = styleLookup(null, keyName);
-            if (!(key instanceof TextAttribute)) {
-                throw new IllegalArgumentException("token is not a TextAttribute: \"" + keyName + '"');
-            }
-
-            int token = findValueEnd(styleDesc, attr + 1);
-            String valueText = styleDesc.substring(attr + 1, token).trim();
-
-            // remove literal markers if present; if literal markers are present,
-            // then the value is that object and no additional parsing will be done
-            Object value = null;
-            boolean isLiteral = false;
-            if (!valueText.isEmpty()) {
-                char start = valueText.charAt(0);
-                char end = valueText.length() > 1 ? valueText.charAt(valueText.length() - 1) : '\0';
-                switch (start) {
-                    case '{':
-                        isLiteral = true;
-                        valueText = valueText.substring(1, valueText.length() - (end == '}' ? 1 : 0));
-                        value = evaluateStyleLiteral(valueText);
-                        break;
-                    case '\'':
-                    case '"':
-                        isLiteral = true;
-                        value = valueText.substring(1, valueText.length() - (end == start ? 1 : 0));
-                        break;
-                }
-            }
-
-            // if it wasn't a string literal or code literal, try to parse
-            // other object types out, including TextAttribute constants
-            if (!isLiteral) {
-                if (valueText.isEmpty()) {
-                    value = null;
-                } else if (COLOUR_MATCHER.matcher(valueText).find()) {
-                    value = colour(valueText);
-                } else if (INT_MATCHER.matcher(valueText).matches()) {
-                    value = Integer.valueOf(valueText);
-                } else if (FLOAT_MATCHER.matcher(valueText).matches()) {
-                    value = Float.valueOf(valueText);
-                } else {
-                    valueText = cleanStyleKey(valueText);
-                    value = styleLookup(keyName, valueText);
-                    if (value instanceof TextAttribute) {
-                        throw new IllegalArgumentException("expected value but found TextAttribute: \"" + valueText + '"');
-                    }
-                }
-            }
-
-            base.add((TextAttribute) key, value);
-
-            return token + 1;
-        }
-        return styleDesc.length();
-    }
-
-    @SuppressWarnings("empty-statement")
-    private static int findValueEnd(String styleDesc, int start) {
-        int i = start;
-
-        // skip past initial whitespace, if any
-        for (; i < styleDesc.length() && Character.isSpaceChar(styleDesc.charAt(i)); ++i);
-
-        // nothing but spaces
-        if (i >= styleDesc.length()) {
-            return styleDesc.length();
-        }
-
-        // if the first char is {, ', or " then this is the start of a string;
-        // otherwise we simply find the terminating ; and we are done
-        char stackOpen = styleDesc.charAt(i);
-        char stackClose;
-        switch (stackOpen) {
-            case '{':
-                stackClose = '}';
-                break;
-            case '\'':
-            case '"':
-                stackClose = stackOpen;
-                break;
-            default:
-                int semi = styleDesc.indexOf(';', i);
-                return semi < 0 ? styleDesc.length() : semi;
-        }
-
-        ++i;
-        int stackCount = 1;
-        for (; i < styleDesc.length(); ++i) {
-            char c = styleDesc.charAt(i);
-            if (c == stackOpen && stackOpen != stackClose) {
-                ++stackCount;
-            } else if (c == stackClose) {
-                if (--stackCount < 0) {
-                    throw new IllegalArgumentException(stackClose + " without " + stackOpen + " at " + (i + 1));
-                }
-            } else if (c == ';' && stackCount == 0) {
-                return i;
-            }
-        }
-
-        if (stackCount > 0) {
-            throw new IllegalArgumentException("unclosed " + stackOpen + " literal at " + (i + 1));
-        }
-        return styleDesc.length();
     }
 
     /**
@@ -2157,7 +1976,7 @@ public class Settings implements Serializable, Iterable<String>,
      * every call. In practice no AHLCG-style literal returns a
      * {@code Scriptable}.
      */
-    private static Object evaluateStyleLiteral(String valueText) {
+    static Object evaluateStyleLiteral(String valueText) {
         Object cached = STYLE_LITERAL_CACHE.get(valueText);
         if (cached != null) {
             return cached;
@@ -2180,56 +1999,6 @@ public class Settings implements Serializable, Iterable<String>,
             + "importClass(java.awt.font.TextAttribute);"
             + "importClass(java.awt.font.TransformAttribute);"
             + "importClass(java.awt.geom.AffineTransform);";
-
-    private static String cleanStyleKey(String key) {
-        return key.toUpperCase(Locale.CANADA).replace(' ', '_');
-    }
-
-    private static final Pattern INT_MATCHER = Pattern.compile("[+-]?[0-9]+");
-    private static final Pattern FLOAT_MATCHER = Pattern.compile("[+-]?[0-9]*\\.[0-9]+");
-    private static final Pattern COLOUR_MATCHER = Pattern.compile("\\#|((rgba?)\\()|(hsba?\\()", Pattern.CASE_INSENSITIVE);
-
-    private static Object styleLookup(String base, String name) {
-        if (STYLE_MAP.containsKey(name)) {
-            return STYLE_MAP.get(name);
-        }
-        if (base != null) {
-            base = base + '_' + name;
-            if (STYLE_MAP.containsKey(base)) {
-                return STYLE_MAP.get(base);
-            }
-        }
-        throw new IllegalArgumentException("unknown token: " + base);
-    }
-
-    private static final HashMap<String, Object> STYLE_MAP = new HashMap<>(100);
-
-    static {
-        try {
-            for (Field f : TextAttribute.class.getFields()) {
-                if (!Modifier.isStatic(f.getModifiers())) {
-                    continue;
-                }
-                STYLE_MAP.put(f.getName(), f.get(null));
-            }
-        } catch (Throwable t) {
-            StrangeEons.log.log(Level.SEVERE, "unable to init text style map", t);
-        }
-        STYLE_MAP.put("JUSTIFICATION_OFF", 0f);
-        STYLE_MAP.put("KERNING_OFF", 0);
-        STYLE_MAP.put("LIGATURES_OFF", 0);
-        STYLE_MAP.put("POSTURE_ITALIC", TextAttribute.POSTURE_OBLIQUE);
-        STYLE_MAP.put("STRIKETHROUGH_OFF", false);
-        STYLE_MAP.put("SWAP_COLORS_OFF", false);
-        STYLE_MAP.put("SWAP_COLOURS", TextAttribute.SWAP_COLORS);
-        STYLE_MAP.put("SWAP_COLOURS_ON", true);
-        STYLE_MAP.put("SWAP_COLOURS_OFF", false);
-        STYLE_MAP.put("TRACKING_DEFAULT", 0f);
-        STYLE_MAP.put("UNDERLINE_OFF", -1);
-        STYLE_MAP.put("WIDTH_SEMICONDENSED", TextAttribute.WIDTH_SEMI_CONDENSED);
-        STYLE_MAP.put("WIDTH_SEMIEXTENDED", TextAttribute.WIDTH_SEMI_EXTENDED);
-//		STYLE_MAP.put( "",  );
-    }
 
     /**
      * Returns a text-fitting method constant from the value of the specified

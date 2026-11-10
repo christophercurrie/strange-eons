@@ -11,7 +11,8 @@ import org.strangeeons.core.Host;
 
 /**
  * Supplies core code with the application's image preparation settings, SVG
- * support, themed stand-in images, cloud fonts and game language.
+ * support, themed stand-in images, cloud fonts, script evaluation and game
+ * language.
  */
 final class AppHost implements Host {
 
@@ -43,6 +44,11 @@ final class AppHost implements Host {
     @Override
     public String resolveFontFamily(String family) {
         return ResourceKit.normalizeFontFamilyName(family);
+    }
+
+    @Override
+    public Object evaluateStyleLiteral(String code) {
+        return Settings.evaluateStyleLiteral(code);
     }
 
     @Override
