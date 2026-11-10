@@ -3,7 +3,7 @@ package ca.cgjennings.apps.arkham.diy.spi;
 import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYEditor;
 import ca.cgjennings.apps.arkham.diy.DIYSheet;
-import ca.cgjennings.graphics.spi.AwtGraphics;
+import org.strangeeons.core.graphics.awt.AwtGraphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;

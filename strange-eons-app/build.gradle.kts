@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":strange-eons-plugin-api"))
     implementation(project(":strange-eons-script-api"))
     implementation(project(":strange-eons-conventional-components"))
+    implementation(project(":strange-eons-core"))
 
     implementation("com.formdev:flatlaf:3.4.1")
     implementation("com.fifesoft:rsyntaxtextarea:3.4.0")

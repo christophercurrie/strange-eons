@@ -3,7 +3,7 @@ package ca.cgjennings.apps.arkham.diy.spi;
 import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYSheet;
 import ca.cgjennings.apps.arkham.sheet.Sheet;
-import ca.cgjennings.graphics.spi.AwtImageHandle;
+import org.strangeeons.core.graphics.awt.AwtImageHandle;
 import ca.cgjennings.layout.PageShape;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

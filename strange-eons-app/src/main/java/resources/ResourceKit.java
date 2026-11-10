@@ -32,7 +32,10 @@ import ca.cgjennings.graphics.shapes.AbstractVectorImage;
 import ca.cgjennings.graphics.shapes.SVGVectorImage;
 import ca.cgjennings.graphics.shapes.VectorIcon;
 import ca.cgjennings.graphics.shapes.VectorImage;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
+import org.strangeeons.core.Host;
+import org.strangeeons.core.resources.ResourceResolver;
+import org.strangeeons.core.resources.ResourceRoot;
 import ca.cgjennings.io.InvalidFileFormatException;
 import ca.cgjennings.io.SEObjectInputStream;
 import ca.cgjennings.io.SEObjectOutputStream;
@@ -93,6 +96,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.Collator;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -243,78 +247,39 @@ public class ResourceKit {
      * {@code null}
      */
     public static URL composeResourceURL(String resource) {
+        return resolver.resolve(resource);
+    }
 
-        // 0. Normalize res:// URLs
-        resource = normalizeResourceIdentifier(resource);
+    /**
+     * Searches, in order: the user resource folder, the application class
+     * path, the shared library class loader, each isolated bundle class
+     * loader, and the open project's plug-in task folders.
+     */
+    private static final ResourceResolver resolver;
 
-        // 1. Check for absolute/res:// URLs
-        if (resource.indexOf(':') >= 0) {
-            // NOTE: this CANNOT be a res:// URL because it has been normalized
-            // (This condition must hold, as otherwise when the res:// protocol
-            // handler calls this method to decode a res:// URL, it would enter an
-            // infinite loop.)
-            try {
-                // most likely an explicit project URL; try to connect so that
-                // if the file does not exist we can return null
-                URL u = new URL(resource);
-                try {
-                    u.openConnection().connect();
-                } catch (IOException e) {
-                    return null;
-                }
-                return u;
-            } catch (MalformedURLException e) {
-                StrangeEons.log.log(Level.WARNING, "could not create absolute URL from \"{0}\"", resource);
-                return null;
-            }
+    /**
+     * Makes the application's resource search order the one used by the
+     * {@code res:} and {@code project:} URL protocols, and supplies core code
+     * with the application's image, font and language services.
+     */
+    public static void installCoreServices() {
+        ResourceResolver.setDefault(resolver);
+        Host.set(new AppHost());
+    }
+
+    private static URL openProjectFolder() {
+        StrangeEons app = StrangeEons.getApplication();
+        StrangeEonsAppWindow af = app == null ? null : StrangeEons.getWindow();
+        Project p = af == null ? null : af.getOpenProject();
+        File folder = p != null ? p.getFile() : app == null ? null : app.getCommandLineArguments().project;
+        if (folder == null) {
+            return null;
         }
-
-        // 2. Check if the user is using a custom resource folder that contains
-        //    the requested file.
-        if (userResourceFolder != null) {
-            String relativeFile = (resource.startsWith("/") ? (".." + resource) : resource)
-                    .replace('/', File.separatorChar);
-            File f = new File(userResourceFolder, relativeFile);
-            if (f.exists()) {
-                try {
-                    return f.toURI().toURL();
-                } catch (MalformedURLException e) {
-                    return null;
-                }
-            }
+        try {
+            return folder.getAbsoluteFile().toURI().toURL();
+        } catch (MalformedURLException e) {
+            return null;
         }
-
-        // 3. Check if the resource exists on the class path, either the
-        //    main application or an installed plug-in.
-        URL url = ResourceKit.class.getResource(resource);
-        if (url != null) {
-            return url;
-        }
-
-        // 3a. Walk per-bundle classloaders. Mirrors the package-prefix
-        //     semantics of ResourceKit.class.getResource: leading "/"
-        //     means absolute classpath, otherwise the path is relative
-        //     to the resources package. Searches the shared library
-        //     classloader (.selibrary / .setheme bundles) and then each
-        //     isolated bundle classloader.
-        String clName = resource.startsWith("/")
-                ? resource.substring(1)
-                : "resources/" + resource;
-        URL libUrl = BundleInstaller.getLibraryClassLoader().getResource(clName);
-        if (libUrl != null) {
-            return libUrl;
-        }
-        for (ClassLoader cl : BundleInstaller.getIsolatedClassLoaders()) {
-            URL u = cl.getResource(clName);
-            if (u != null) {
-                return u;
-            }
-        }
-
-        // 4. If there is an open project, search it for task folders that
-        //    contain a "resources" folder and try to locate the resource
-        //    relative to those folders. Otherwise return null.
-        return findResourceInProject(resource);
     }
 
     private static final File userResourceFolder;
@@ -323,6 +288,24 @@ public class ResourceKit {
         // app is null when loading ResKit from, e.g., a GUI builder
         StrangeEons app = StrangeEons.getApplication();
         userResourceFolder = app == null ? null : app.getCommandLineArguments().resfolder;
+
+        List<ResourceRoot> roots = new ArrayList<>();
+        if (userResourceFolder != null) {
+            roots.add(ResourceRoot.folder(userResourceFolder.toPath()));
+        }
+        roots.add(ResourceRoot.classLoader(ResourceKit.class.getClassLoader()));
+        roots.add(path -> ResourceRoot.classLoader(BundleInstaller.getLibraryClassLoader()).find(path));
+        roots.add(path -> {
+            for (ClassLoader cl : BundleInstaller.getIsolatedClassLoaders()) {
+                URL u = ResourceRoot.classLoader(cl).find(path);
+                if (u != null) {
+                    return u;
+                }
+            }
+            return null;
+        });
+        roots.add(ResourceKit::findResourceInProject);
+        resolver = new ResourceResolver(roots, ResourceKit::openProjectFolder);
     }
 
     /**
@@ -428,27 +411,7 @@ public class ResourceKit {
      * @return an equivalent (possibly identical) identifier
      */
     public static String normalizeResourceIdentifier(String resource) {
-        if (resource == null) {
-            return resource;
-        }
-        int len = resource.length();
-        if (len < 4) {
-            return resource;
-        }
-        if (resource.charAt(0) != 'r' || resource.charAt(1) != 'e' || resource.charAt(2) != 's' || resource.charAt(3) != ':') {
-            return resource;
-        }
-
-        // res URLs are allowed any number of slashes at start, though either 2
-        // (relative) or 3 (absolute) are normal. We need to count how many there
-        // are, and then keep 1 of them if the count is odd (so result is still absolute)
-        int beginIndex = 4; //N.B. 4 is even, therefore parity of beginIndex will equal parity of # of slashes
-        while (beginIndex < len && resource.charAt(beginIndex) == '/') {
-            ++beginIndex;
-        }
-        beginIndex -= beginIndex & 1;
-
-        return resource.substring(beginIndex);
+        return ResourceResolver.normalize(resource);
     }
 
     /**

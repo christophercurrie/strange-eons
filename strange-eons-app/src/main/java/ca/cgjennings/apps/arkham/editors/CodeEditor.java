@@ -19,7 +19,7 @@ import ca.cgjennings.apps.arkham.project.ProjectUtilities;
 import ca.cgjennings.apps.arkham.project.Task;
 import ca.cgjennings.graphics.ImageUtilities;
 import ca.cgjennings.i18n.PatternExceptionLocalizer;
-import ca.cgjennings.io.EscapedTextCodec;
+import org.strangeeons.core.io.EscapedTextCodec;
 import ca.cgjennings.math.Interpolation;
 import ca.cgjennings.platform.DesktopIntegration;
 import ca.cgjennings.ui.DocumentEventAdapter;

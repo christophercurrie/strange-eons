@@ -8,7 +8,7 @@ import ca.cgjennings.apps.arkham.plugins.BundleInstaller;
 import ca.cgjennings.apps.arkham.project.ProjectUtilities;
 import ca.cgjennings.io.ConnectionSupport;
 import ca.cgjennings.io.CountingInputStream;
-import ca.cgjennings.io.EscapedTextCodec;
+import org.strangeeons.core.io.EscapedTextCodec;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.io.BufferedInputStream;

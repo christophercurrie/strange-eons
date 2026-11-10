@@ -11,6 +11,7 @@ import ca.cgjennings.ui.theme.Theme;
 import ca.cgjennings.ui.theme.ThemedIcon;
 import ca.cgjennings.ui.theme.ThemedImageIcon;
 import ca.cgjennings.ui.theme.ThemedSingleImageIcon;
+import org.strangeeons.core.graphics.ImageFormats;
 import java.awt.AlphaComposite;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -58,7 +59,7 @@ public final class ImageUtilities {
      * 8-bit RGB format
      */
     public static BufferedImage createCompatibleIntRGBFormat(BufferedImage im) {
-        return createCompatibleIntRGBFormat(im, im.getWidth(), im.getHeight());
+        return ImageFormats.createCompatibleIntRGBFormat(im);
     }
 
     /**
@@ -72,9 +73,7 @@ public final class ImageUtilities {
      * 8-bit RGB format
      */
     public static BufferedImage createCompatibleIntRGBFormat(BufferedImage im, int width, int height) {
-        final int type = (im.getTransparency() == BufferedImage.OPAQUE)
-                ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
-        return new BufferedImage(width, height, type);
+        return ImageFormats.createCompatibleIntRGBFormat(im, width, height);
     }
 
     /**
@@ -86,9 +85,7 @@ public final class ImageUtilities {
      * 8-bit ARGB format
      */
     public static BufferedImage createCompatibleIntARGBFormat(BufferedImage im) {
-        return new BufferedImage(
-                im.getWidth(), im.getHeight(), BufferedImage.TYPE_INT_ARGB
-        );
+        return ImageFormats.createCompatibleIntARGBFormat(im);
     }
 
     /**
@@ -96,35 +93,11 @@ public final class ImageUtilities {
      * equivalent image in an integer RGB format. If <tt>im</tt> is already in
      * an integer RGB format, returns the original image.
      *
-     * @param im the non-null image to be provided in integer RGB format
+     * @param image the non-null image to be provided in integer RGB format
      * @return the original image, or a copy converted to a suitable format
      */
     public static BufferedImage ensureIntRGBFormat(Image image) {
-        if (!(Objects.requireNonNull(image, "image") instanceof BufferedImage)) {
-            waitForImage(image);
-            BufferedImage im = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = im.createGraphics();
-            try {
-                g.drawImage(image, 0, 0, null);
-            } finally {
-                g.dispose();
-            }
-            return im;
-        }
-        
-        BufferedImage im = (BufferedImage) image;
-        final int type = im.getType();
-        if (type != BufferedImage.TYPE_INT_RGB && type != BufferedImage.TYPE_INT_ARGB && type != BufferedImage.TYPE_INT_ARGB_PRE) {
-            BufferedImage dest = createCompatibleIntRGBFormat(im);
-            Graphics2D g = dest.createGraphics();
-            try {
-                g.drawImage(im, 0, 0, null);
-            } finally {
-                g.dispose();
-            }
-            im = dest;
-        }
-        return im;
+        return ImageFormats.ensureIntRGBFormat(image);
     }
 
     /**
@@ -136,11 +109,7 @@ public final class ImageUtilities {
      * @return the original image, or a copy that includes an alpha channel
      */
     public static BufferedImage ensureImageHasAlphaChannel(BufferedImage im) {
-        int type = im.getType();
-        if (type != BufferedImage.TYPE_INT_ARGB && type != BufferedImage.TYPE_INT_ARGB_PRE) {
-            im = ensureImageHasType(im, BufferedImage.TYPE_INT_ARGB);
-        }
-        return im;
+        return ImageFormats.ensureImageHasAlphaChannel(im);
     }
 
     /**
@@ -153,17 +122,7 @@ public final class ImageUtilities {
      * @return the original image, or a copy converted to the requested format
      */
     public static BufferedImage ensureImageHasType(BufferedImage im, int type) {
-        if (im.getType() != type) {
-            BufferedImage dest = new BufferedImage(im.getWidth(), im.getHeight(), type);
-            Graphics2D g = dest.createGraphics();
-            try {
-                g.drawImage(im, 0, 0, null);
-            } finally {
-                g.dispose();
-            }
-            im = dest;
-        }
-        return im;
+        return ImageFormats.ensureImageHasType(im, type);
     }
 
     /**
@@ -176,12 +135,7 @@ public final class ImageUtilities {
      * premultiplied alpha if appropriate
      */
     public static BufferedImage ensurePremultipliedFormat(BufferedImage im) {
-        if (im.getTransparency() != Transparency.OPAQUE) {
-            im = ensureImageHasType(im, BufferedImage.TYPE_INT_ARGB_PRE);
-        } else {
-            im = ensureImageHasType(im, BufferedImage.TYPE_INT_RGB);
-        }
-        return im;
+        return ImageFormats.ensurePremultipliedFormat(im);
     }
 
     /**
@@ -276,36 +230,7 @@ public final class ImageUtilities {
      * is not already of that type
      */
     public static BufferedImage imageToBufferedImage(Image image) {
-        if (Objects.requireNonNull(image, "image") instanceof BufferedImage) {
-            return (BufferedImage) image;
-        }
-        
-        waitForImage(image);
-        
-        // default to ARGB, but try to detect RGB
-        int type = BufferedImage.TYPE_INT_ARGB;
-        final int w = image.getWidth(null);
-        final int h = image.getHeight(null);
-        try {
-            PixelGrabber grabber = new PixelGrabber(image, w-1, h-1, 1, 1, false);
-            grabber.grabPixels();
-            if (!grabber.getColorModel().hasAlpha()) {
-                type = BufferedImage.TYPE_INT_RGB;
-            }
-        } catch (InterruptedException | RuntimeException ex) {
-            // stick with default type, which is safe to use
-        }
-
-        // convert image
-        final BufferedImage im = new BufferedImage(w, h, type);
-        Graphics2D g = im.createGraphics();
-        try {
-            g.drawImage(image, 0, 0, null);
-        } finally {
-            g.dispose();
-        }
-
-        return im;
+        return ImageFormats.imageToBufferedImage(image);
     }
 
     /**
@@ -637,14 +562,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static double idealCoveringScaleForImage(double idealWidth, double idealHeight, double imageWidth, double imageHeight) {
-        double hScale = idealWidth / imageWidth;
-        double vScale = idealHeight / imageHeight;
-
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**
@@ -664,14 +582,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static float idealCoveringScaleForImage(float idealWidth, float idealHeight, float imageWidth, float imageHeight) {
-        float hScale = idealWidth / imageWidth;
-        float vScale = idealHeight / imageHeight;
-
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**
@@ -691,13 +602,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static float idealCoveringScaleForImage(int idealWidth, int idealHeight, int imageWidth, int imageHeight) {
-        float hScale = idealWidth / (float) imageWidth;
-        float vScale = idealHeight / (float) imageHeight;
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**
@@ -1044,53 +949,7 @@ public final class ImageUtilities {
      * @return the image that was passed in
      */
     public static Image waitForImage(Image im) {
-        // common case, and always "loaded"
-        if (im instanceof BufferedImage) {
-            return im;
-        }
-        
-        // needed to get a graphics context
-        final BufferedImage dest = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
-        
-        // create an image observer to notify us when the image has loaded
-        final Object synchObject = new Object();
-        final ImageObserver obs = (Image img, int stateFlags, int x, int y, int width, int height) -> {
-            if (stateFlags < ImageObserver.ALLBITS) {
-                // not done; wait for more status updates
-                return true;
-            }
-            
-            // done, wake up the calling thread
-            synchronized (synchObject) {
-                synchObject.notify();
-            }
-            return false;
-        };
-        
-        synchronized (synchObject) {
-            Graphics2D g = dest.createGraphics();
-            try {
-                // ensure image starts loading, and check if it has finished
-                boolean hasLoaded = g.drawImage(im, 0, 0, obs);
-
-                // if it hasn't finished, sleep until it finishes, at which point
-                // the observer we created and passed to drawImage will notify us
-                if (!hasLoaded) {
-                    for (;;) {
-                        try {
-                            // release monitor and wait for observer
-                            synchObject.wait(0);
-                            break;
-                        } catch (InterruptedException iex) {
-                            // keep waiting
-                        }
-                    }
-                }
-            } finally {
-                g.dispose();
-            }
-        }
-        
-        return im;
+        return ImageFormats.waitForImage(im);
     }
+
 }

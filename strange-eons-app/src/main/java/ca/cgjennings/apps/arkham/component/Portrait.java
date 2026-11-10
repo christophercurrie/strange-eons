@@ -246,7 +246,7 @@ public interface Portrait extends org.strangeeons.plugins.component.Portrait {
         if (bi == null) {
             return null;
         }
-        return new ca.cgjennings.graphics.spi.AwtImageHandle(bi, getSource());
+        return new org.strangeeons.core.graphics.awt.AwtImageHandle(bi, getSource());
     }
 
     @Override
@@ -255,7 +255,7 @@ public interface Portrait extends org.strangeeons.plugins.component.Portrait {
             setImage(null, null);
             return;
         }
-        if (handle instanceof ca.cgjennings.graphics.spi.AwtImageHandle awt) {
+        if (handle instanceof org.strangeeons.core.graphics.awt.AwtImageHandle awt) {
             setImage(awt.getSource(), awt.image());
             return;
         }

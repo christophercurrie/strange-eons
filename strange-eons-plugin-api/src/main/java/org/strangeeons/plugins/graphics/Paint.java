@@ -13,6 +13,13 @@ package org.strangeeons.plugins.graphics;
 public sealed interface Paint {
 
     /**
+     * Returns this paint in its canonical settings format.
+     *
+     * @return the settings-format string
+     */
+    String toSetting();
+
+    /**
      * A solid-color paint described by an {@code "RRGGBB"} or
      * {@code "AARRGGBB"} hexadecimal string. The framework parses
      * the string when rendering.
@@ -20,6 +27,10 @@ public sealed interface Paint {
     record Color(String hex) implements Paint {
         /** Bean-style getter for {@link #hex()}. */
         public String getHex() { return hex; }
+
+        /** Returns the hex string. */
+        @Override
+        public String toSetting() { return hex; }
     }
 
     /**

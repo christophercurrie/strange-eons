@@ -72,6 +72,12 @@ public class CommandLineArguments implements Cloneable {
     public File run = null;
 
     /**
+     * Project folder that {@code project:} URLs resolve against while no
+     * project is open, such as during a {@code --run} script.
+     */
+    public File project = null;
+
+    /**
      * If set, display help for non-standard options and exit.
      */
     public boolean x = false;
@@ -299,6 +305,7 @@ public class CommandLineArguments implements Cloneable {
                 + "  --logLevel level      sets minimum severity of log messages [see (2)]\n"
                 + "  --resetPrefs          resets all preferences to their default values\n"
                 + "  --run file            run the script file non-interactively\n"
+                + "  --project folder      resolves project: URLs here when no project is open\n"
                 + "  --resFolder           names a folder with additional application resources\n"
                 + "  --pluginTest file(s)  runs in test mode with this plug-in bundle;\n"
                 + "                        use " + File.pathSeparator + " to list multiple bundles\n"

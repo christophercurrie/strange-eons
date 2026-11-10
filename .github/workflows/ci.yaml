@@ -62,13 +62,20 @@ jobs:
           name: jvm-crash-reports-${{ matrix.os }}
           path: "**/hs_err_pid*.log"
           if-no-files-found: ignore
+      - name: Verify library publication
         if: matrix.os == 'ubuntu-latest'
         run: |
           ./gradlew --no-daemon \
             :strange-eons-plugin-api:check \
+            :strange-eons-script-api:check \
+            :strange-eons-core:check \
             :strange-eons-conventional-components:check \
+            :strange-eons-testkit:check \
             :strange-eons-plugin-api:publishToMavenLocal \
-            :strange-eons-conventional-components:publishToMavenLocal
+            :strange-eons-script-api:publishToMavenLocal \
+            :strange-eons-core:publishToMavenLocal \
+            :strange-eons-conventional-components:publishToMavenLocal \
+            :strange-eons-testkit:publishToMavenLocal
 
   publish-snapshot:
     needs: build
@@ -90,4 +97,7 @@ jobs:
         run: |
           ./gradlew --no-daemon \
             :strange-eons-plugin-api:publishToMavenCentral \
-            :strange-eons-conventional-components:publishToMavenCentral
+            :strange-eons-script-api:publishToMavenCentral \
+            :strange-eons-core:publishToMavenCentral \
+            :strange-eons-conventional-components:publishToMavenCentral \
+            :strange-eons-testkit:publishToMavenCentral

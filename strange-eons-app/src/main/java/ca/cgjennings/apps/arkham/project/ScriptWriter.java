@@ -2,7 +2,7 @@ package ca.cgjennings.apps.arkham.project;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.TextEncoding;
-import ca.cgjennings.io.EscapedTextCodec;
+import org.strangeeons.core.io.EscapedTextCodec;
 import ca.cgjennings.text.SETemplateProcessor;
 import ca.cgjennings.util.SortedProperties;
 import java.awt.EventQueue;

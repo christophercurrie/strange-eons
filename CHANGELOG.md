@@ -8,6 +8,17 @@
 - Add a root file editor option to choose where Make Bundle touches catalog IDs: in the project folder, or only in the bundled plug-in, which leaves the `eons-plugin` source file unchanged. A plug-in with no ID still has its new ID saved to the project folder.
 - Allow `--run` scripts to run without a display, when started with `-Djava.awt.headless=true`. A headless run has no application window or script console, starts libraries and extensions but not other plug-ins, and exits with status 1 if the script fails.
 - `--run` scripts no longer bring Strange Eons to the front or take focus on macOS.
+- Fix escaped resource files (class maps, tile sets, silhouettes, project task settings and view state): `\=`, `\:`, `\#` and `\!` no longer drop text, `\\` reads as one backslash, and values the app writes read back unchanged.
+- `res:` and `project:` URLs resolve through `org.strangeeons.core.resources.ResourceResolver` and work on any class path with `strange-eons-core`, including headless `--run` scripts.
+- Add `--project folder`: `project:` URLs resolve against it while no project is open.
+- The testkit adds `MarkupImages`, which renders markup to an image with sheet export hints, and `MasterImages`, which checks rendered images against masters (`-Dstrangeeons.updateMasters=true` records them). `ImageComparator` can compare one image with a master file.
+- The testkit adds `TestResources`, which resolves `res:` and `project:` URLs against a plug-in's source folders during tests.
+- `strange-eons-core` includes the image filters and blend modes (`ca.cgjennings.graphics.filters`, `ca.cgjennings.graphics.composites`), `ca.cgjennings.math`, and the split-join classes of `ca.cgjennings.algo`, under their existing names. `ImageUtilities` delegates its pixel format conversions to `org.strangeeons.core.graphics.ImageFormats`.
+- Fix PSD layers that use darken, lighten, hue, saturation, color, luminosity, multiply, screen, overlay, hard light, soft light or difference blending: `BlendMode.derive` threw for every built-in mode.
+- Fix `new TintFilter(0, 1, 1).isIdentity()` returning false.
+- `strange-eons-core` includes markup layout (`ca.cgjennings.layout`), `resources.StrangeImage`, `VectorImage` and `AbstractVectorImage` under their existing names. Image preparation, SVG loading, stand-in images, font family names and the game locale come from `org.strangeeons.core.Host`, which the application installs at startup; its defaults let markup render without the application.
+- Publish `org.strangeeons:strange-eons-core`, application code shared with plug-ins. `EscapedLineReader`, `EscapedLineWriter` and `EscapedTextCodec` move to `org.strangeeons.core.io`, and `LineWrapper` to `org.strangeeons.core.text`; the `ca.cgjennings` names remain, deprecated.
+- Publish `org.strangeeons:strange-eons-testkit`, test support for plug-ins. It starts with render comparison against reference masters (`ImageComparator`, `MasterPlan`).
 
 ## 3.5.1
 

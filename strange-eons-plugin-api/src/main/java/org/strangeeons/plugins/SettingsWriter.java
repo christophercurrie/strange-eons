@@ -85,9 +85,7 @@ public interface SettingsWriter {
             reset(key);
             return;
         }
-        switch (color) {
-            case Paint.Color c -> set(key, c.getHex());
-        }
+        set(key, color.toSetting());
     }
 
     /**

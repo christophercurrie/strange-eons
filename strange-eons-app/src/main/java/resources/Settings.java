@@ -58,6 +58,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import org.strangeeons.core.graphics.ColorFormat;
 import static resources.Language.string;
 
 /**
@@ -1231,61 +1232,10 @@ public class Settings implements Serializable, Iterable<String>,
      */
     private static int colourImpl(String key, String value) {
         try {
-            value = value.trim();
-            char c0 = value.charAt(0);
-            if (c0 == 'r' || c0 == 'R' || c0 == 'h' || c0 == 'H' || c0 == '(') {
-                int lparen = value.indexOf('(');
-                int rparen = value.lastIndexOf(')');
-                if (lparen < 0) {
-                    throw new IllegalArgumentException("missing (");
-                }
-                if (rparen < 0) {
-                    throw new IllegalArgumentException("missing )");
-                }
-                String[] comps = LIST_SPLITTER.split(value.substring(lparen + 1, rparen).trim());
-                if (comps.length < 3) {
-                    throw new IllegalArgumentException("missing components");
-                }
-                if (comps.length > 4) {
-                    throw new IllegalArgumentException("too many components");
-                }
-
-                if (c0 == 'h' || c0 == 'H') {
-                    int rgb = Color.HSBtoRGB(Float.parseFloat(comps[0]) / 360f, Float.parseFloat(comps[1]), Float.parseFloat(comps[2]));
-                    if (comps.length == 4) {
-                        rgb |= toByte(comps[3]) << 24;
-                    }
-                    return rgb;
-                }
-
-                final int r = toByte(comps[0]);
-                final int g = toByte(comps[1]);
-                final int b = toByte(comps[2]);
-                final int a = comps.length == 3 ? 255 : toByte(comps[3]);
-                return (a << 24) | (r << 16) | (g << 8) | b;
-            }
-
-            if (c0 == '#') {
-                value = value.substring(1);
-            }
-
-            if (value.length() == 6) {
-                return 0xff000000 | Integer.parseInt(value, 16);
-            } else if (value.length() == 8) {
-                return (int) (Long.parseLong(value, 16) & 0xffffffffL);
-            }
-            throw new IllegalArgumentException("wrong number of digits; must be 6 or 8");
+            return ColorFormat.parse(value);
         } catch (Throwable t) {
             throw new ParseError("rk-err-colour", key, value, t);
         }
-    }
-
-    /**
-     * Converts a float string from 0-1 to a byte from 0-255, clamped.
-     */
-    private static int toByte(String colourComponent) {
-        final int v = (int) (Float.parseFloat(colourComponent) * 255f + 0.5f);
-        return v < 0 ? 0 : (v > 255 ? 255 : v);
     }
 
     /**
@@ -2482,7 +2432,7 @@ public class Settings implements Serializable, Iterable<String>,
     @Override
     public final org.strangeeons.plugins.graphics.ImageHandle readImage(String key) {
         return get(key) == null ? null
-                : new ca.cgjennings.graphics.spi.AwtImageHandle(getImageResource(key), key);
+                : new org.strangeeons.core.graphics.awt.AwtImageHandle(getImageResource(key), key);
     }
 
     /**

@@ -1,6 +1,6 @@
 package ca.cgjennings.apps.arkham.component;
 
-import ca.cgjennings.graphics.spi.AwtImageHandle;
+import org.strangeeons.core.graphics.awt.AwtImageHandle;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;

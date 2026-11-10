@@ -14,6 +14,11 @@ mavenPublishing {
     }
 }
 
+// Java 17, so Gradle plug-ins and the testkit can load it in the build JVM.
+tasks.withType<JavaCompile>().configureEach {
+    options.release = 17
+}
+
 dependencies {
     api(project(":strange-eons-plugin-api"))
 

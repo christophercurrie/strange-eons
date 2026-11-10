@@ -1,8 +1,8 @@
 package ca.cgjennings.apps.arkham.project;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.io.EscapedLineReader;
-import ca.cgjennings.io.EscapedLineWriter;
+import org.strangeeons.core.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

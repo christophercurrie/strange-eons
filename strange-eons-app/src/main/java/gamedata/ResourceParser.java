@@ -1,7 +1,7 @@
 package gamedata;
 
 import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.io.EscapedLineReader;
+import org.strangeeons.core.io.EscapedLineReader;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;

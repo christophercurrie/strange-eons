@@ -156,4 +156,40 @@ class HeadlessRunTest {
             assertTrue(r.output().contains(expected), expected + " not in:\n" + r.output());
         }
     }
+
+    @Test
+    void resourceUrlsResolveWithoutWindows() throws Exception {
+        Path project = temp.resolve("project");
+        Files.createDirectories(project.resolve("Task"));
+        Files.writeString(project.resolve("Task/card.txt"), "project-marker");
+        Path script = temp.resolve("resources.js");
+        Files.writeString(script, """
+                var URL = java.net.URL;
+                var read = function (u) {
+                    return String(new java.lang.String(new URL(u).openStream().readAllBytes(), 'UTF-8'));
+                };
+                println('res=' + (read('res://default.settings').length > 0));
+                println('compose=' + (resources.ResourceKit.composeResourceURL('res:///resources/default.settings') != null));
+                println('project=' + read('project:Task/card.txt'));
+                """);
+        Result r = launch("--run", script.toString(), "--project", project.toString());
+        assertEquals(0, r.status(), r.output());
+        for (String expected : List.of("res=true", "compose=true", "project=project-marker")) {
+            assertTrue(r.output().contains(expected), expected + " not in:\n" + r.output());
+        }
+    }
+
+    @Test
+    void projectUrlsNeedAProject() throws Exception {
+        Result r = runScript("""
+                try {
+                    new java.net.URL('project:Task/card.txt').openStream();
+                    println('opened');
+                } catch (ex) {
+                    println('missing=' + (ex.javaException instanceof java.io.FileNotFoundException));
+                }
+                """);
+        assertEquals(0, r.status(), r.output());
+        assertTrue(r.output().contains("missing=true"), r.output());
+    }
 }
