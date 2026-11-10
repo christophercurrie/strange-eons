@@ -66,6 +66,14 @@ class FiltersTest {
     }
 
     @Test
+    void constructedIdentityTintIsIdentity() {
+        assertThat(new TintFilter(0f, 1f, 1f).isIdentity()).isTrue();
+        assertThat(new TintFilter(0.2f, 1f, 1f).isIdentity()).isFalse();
+        BufferedImage src = sample(BufferedImage.TYPE_INT_ARGB);
+        assertThat(new TintCache(new TintFilter(0f, 1f, 1f), src).getTintedImage()).isSameAs(src);
+    }
+
+    @Test
     void identityTintLeavesPixelsAlone() {
         TintFilter tint = new TintFilter();
         tint.setFactors(0f, 1f, 1f);

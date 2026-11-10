@@ -14,7 +14,8 @@ import java.awt.Color;
  */
 public class TintFilter extends TintOverlayFilter {
 
-    private boolean identity = false;
+    // no initializer: the superclass constructor sets it through setFactors
+    private boolean identity;
 
     public TintFilter() {
     }
