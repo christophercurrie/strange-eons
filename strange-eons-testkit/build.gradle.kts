@@ -18,6 +18,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 dependencies {
+    api(project(":strange-eons-core"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
