@@ -13,6 +13,7 @@
 - Add `--project folder`: `project:` URLs resolve against it while no project is open.
 - Editor value bindings (`SwingValue`, `SettingBinding`) move to `org.strangeeons.core.editor` and no longer depend on `DIY`.
 - The testkit adds `TestEditorPanel`, which builds a component handler's editor without the application so tests can change controls and check settings and changed faces, and `PlainEditorControls`, standard Swing editor controls.
+- `org.strangeeons.core.scripts.ScriptLanguages` finds script languages registered through the `ScriptLanguage` SPI. Script values in text styles run in the registered `javascript` language, so tests can evaluate them with any JavaScript language on the class path.
 - `ScriptMonkey` no longer has to be first used on the event dispatch thread or after application startup, so scripts can run in unit tests. Script engine settings are reapplied on preference changes by a listener the application registers at startup (`ScriptMonkey.applyEngineSettings`).
 - Setting value parsers (yes/no, integers, numbers, cup shapes, text alignment, text styles) move to `org.strangeeons.core.settings.SettingValues`; `Settings` delegates to them. Script values in text styles are evaluated through `Host.evaluateStyleLiteral`.
 - The testkit adds `TestSettings`, a standalone `SettingsReadWrite` that parses values as the application does, for testing plug-in code written against the SPI.

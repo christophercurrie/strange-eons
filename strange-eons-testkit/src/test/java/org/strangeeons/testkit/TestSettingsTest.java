@@ -158,4 +158,11 @@ class TestSettingsTest {
             assertNull(s.readImage("none"));
         }
     }
+
+    @Test
+    void evaluatesStyleScriptsWithTheRegisteredJavaScript() {
+        TestSettings s = TestSettings.of(Map.of("title-style", "size: {6 * 2}"));
+        TextStyle style = (TextStyle) s.readTextStyle("title", null);
+        assertEquals(12f, style.get(TextAttribute.SIZE));
+    }
 }

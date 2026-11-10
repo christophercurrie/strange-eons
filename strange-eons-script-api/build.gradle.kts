@@ -14,6 +14,11 @@ mavenPublishing {
     }
 }
 
+// Java 17, so the testkit and Gradle plug-ins can load it in the build JVM.
+tasks.withType<JavaCompile>().configureEach {
+    options.release = 17
+}
+
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

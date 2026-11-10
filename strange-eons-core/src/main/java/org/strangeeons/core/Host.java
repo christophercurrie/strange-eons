@@ -9,6 +9,10 @@ import java.util.Locale;
 import java.util.Objects;
 import org.strangeeons.core.graphics.ImageFormats;
 import org.strangeeons.core.graphics.MissingImages;
+import org.strangeeons.core.scripts.ScriptLanguages;
+import org.strangeeons.scripts.ScriptException;
+import org.strangeeons.scripts.ScriptLanguage;
+import org.strangeeons.scripts.ScriptSession;
 
 /**
  * Services that core code obtains from the application. Every method has a
@@ -97,15 +101,28 @@ public interface Host {
 
     /**
      * Evaluates the script code in a braced text style value, such as
-     * {@code FOREGROUND: {new Color(0, 0, 0)}}. The default does not run
-     * scripts.
+     * {@code FOREGROUND: {new Color(0, 0, 0)}}. The default runs it in a new
+     * session of the registered {@value ScriptLanguages#JAVASCRIPT} language,
+     * after importing the packages style values may refer to.
      *
      * @param code the code between the braces
      * @return the value of the code
-     * @throws UnsupportedOperationException if scripts are not available
+     * @throws UnsupportedOperationException if no JavaScript language is
+     * registered
+     * @throws IllegalArgumentException if the code fails
      */
     default Object evaluateStyleLiteral(String code) {
-        throw new UnsupportedOperationException("script values in text styles need a script engine: {" + code + "}");
+        ScriptLanguage js = ScriptLanguages.find(ScriptLanguages.JAVASCRIPT);
+        if (js == null) {
+            throw new UnsupportedOperationException(
+                    "script values in text styles need a JavaScript language: {" + code + "}");
+        }
+        try (ScriptSession session = js.createSession()) {
+            session.eval(HostHolder.STYLE_LITERAL_IMPORTS, "style setting imports");
+            return session.eval(code, "style setting literal");
+        } catch (ScriptException e) {
+            throw new IllegalArgumentException("script value failed: {" + code + "}", e);
+        }
     }
 
     /**
@@ -121,6 +138,13 @@ public interface Host {
 
 /** Holds the installed host. */
 final class HostHolder {
+
+    static final String STYLE_LITERAL_IMPORTS
+            = "importPackage(gamedata);"
+            + "importPackage(resources);"
+            + "importClass(java.awt.font.TextAttribute);"
+            + "importClass(java.awt.font.TransformAttribute);"
+            + "importClass(java.awt.geom.AffineTransform);";
 
     static final VectorImage MISSING = MissingImages.createDefault();
     static volatile Host current = new Host() {

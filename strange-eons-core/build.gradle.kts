@@ -20,6 +20,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     api(project(":strange-eons-plugin-api"))
+    api(project(":strange-eons-script-api"))
     testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.mockito:mockito-core:5.18.0")
