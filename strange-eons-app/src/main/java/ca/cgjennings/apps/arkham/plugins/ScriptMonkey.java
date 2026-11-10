@@ -4,7 +4,6 @@ import ca.cgjennings.apps.arkham.StrangeEons;
 import ca.cgjennings.apps.arkham.StrangeEonsAppWindow;
 import ca.cgjennings.apps.arkham.TextEncoding;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
-import ca.cgjennings.apps.arkham.dialog.prefs.Preferences;
 import ca.cgjennings.apps.arkham.plugins.debugging.ScriptDebugging;
 import ca.cgjennings.apps.arkham.plugins.engine.ScriptEngineMetrics;
 import ca.cgjennings.apps.arkham.plugins.engine.SEScriptEngineFactory;
@@ -46,7 +45,7 @@ import resources.Settings;
  */
 public final class ScriptMonkey {
 
-    private static ScriptConsole console;
+    private static volatile ScriptConsole console;
 
     private final ScriptEngine engine;
 
@@ -140,10 +139,14 @@ public final class ScriptMonkey {
         engine.put("__filename", __filename);
     }
 
-    private static void updateScriptEngineOpimizationSettings() {
+    /**
+     * Applies the script optimization level and warning settings to new
+     * script contexts. The application calls this when preferences change.
+     */
+    public static void applyEngineSettings() {
         Settings s = Settings.getShared();
 
-        int optLevel = s.getInt("script-optimization-level");
+        int optLevel = s.getInt("script-optimization-level", 0);
         if (optLevel < -1) {
             optLevel = -1;
         }
@@ -155,22 +158,23 @@ public final class ScriptMonkey {
     }
 
     static {
-        // initialize the script system
-        if (!EventQueue.isDispatchThread()) {
-            throw new AssertionError("script system must be initialized in EDT");
-        }
-
         // load the initial optimization settings
-        updateScriptEngineOpimizationSettings();
+        applyEngineSettings();
 
-        // listen for changes to the optimization settings
-        Preferences.addPreferenceUpdateListener(ScriptMonkey::updateScriptEngineOpimizationSettings);
-
-        // create the shared console
+        // create the shared console; Swing windows must be created in the EDT
         if (!GraphicsEnvironment.isHeadless()) {
-            console = new ScriptConsole(StrangeEons.getWindow());
-            console.setIconImages(StrangeEonsAppWindow.getApplicationFrameIcons());
+            if (EventQueue.isDispatchThread()) {
+                createConsole();
+            } else {
+                EventQueue.invokeLater(ScriptMonkey::createConsole);
+            }
         }
+    }
+
+    private static void createConsole() {
+        ScriptConsole c = new ScriptConsole(StrangeEons.getWindow());
+        c.setIconImages(StrangeEonsAppWindow.getApplicationFrameIcons());
+        console = c;
     }
 
     /**
@@ -810,7 +814,7 @@ public final class ScriptMonkey {
      * @return an initialized script engine
      */
     private ScriptEngine createScriptEngine() {
-        updateScriptEngineOpimizationSettings();
+        applyEngineSettings();
         ScriptEngine engine = SEScriptEngineFactory.getDefaultScriptEngine();
 
         // INSTALL SUPPORT FOR $-NOTATION

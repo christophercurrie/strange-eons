@@ -11,6 +11,7 @@
 - Fix escaped resource files (class maps, tile sets, silhouettes, project task settings and view state): `\=`, `\:`, `\#` and `\!` no longer drop text, `\\` reads as one backslash, and values the app writes read back unchanged.
 - `res:` and `project:` URLs resolve through `org.strangeeons.core.resources.ResourceResolver` and work on any class path with `strange-eons-core`, including headless `--run` scripts.
 - Add `--project folder`: `project:` URLs resolve against it while no project is open.
+- `ScriptMonkey` no longer has to be first used on the event dispatch thread or after application startup, so scripts can run in unit tests. Script engine settings are reapplied on preference changes by a listener the application registers at startup (`ScriptMonkey.applyEngineSettings`).
 - Setting value parsers (yes/no, integers, numbers, cup shapes, text alignment, text styles) move to `org.strangeeons.core.settings.SettingValues`; `Settings` delegates to them. Script values in text styles are evaluated through `Host.evaluateStyleLiteral`.
 - The testkit adds `TestSettings`, a standalone `SettingsReadWrite` that parses values as the application does, for testing plug-in code written against the SPI.
 - The testkit adds `MarkupImages`, which renders markup to an image with sheet export hints, and `MasterImages`, which checks rendered images against masters (`-Dstrangeeons.updateMasters=true` records them). `ImageComparator` can compare one image with a master file.

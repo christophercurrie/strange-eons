@@ -3,6 +3,7 @@ package ca.cgjennings.apps.arkham;
 import ca.cgjennings.algo.SplitJoin;
 import ca.cgjennings.apps.arkham.component.GameComponent;
 import ca.cgjennings.apps.arkham.dialog.ErrorDialog;
+import ca.cgjennings.apps.arkham.dialog.prefs.Preferences;
 import ca.cgjennings.apps.arkham.plugins.BundleInstaller;
 import ca.cgjennings.apps.arkham.plugins.InstalledPlugin;
 import ca.cgjennings.apps.arkham.plugins.Plugin;
@@ -2022,6 +2023,9 @@ public final class StrangeEons {
 
         // Install L&F based on settings
         ThemeInstaller.install();
+
+        // apply script engine settings when preferences change
+        Preferences.addPreferenceUpdateListener(ScriptMonkey::applyEngineSettings);
 
         // Once the L&F is installed, we can start doing things that might
         // create windows or take other L&F-sensitive actions. The app window needs

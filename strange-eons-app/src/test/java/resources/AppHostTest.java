@@ -74,4 +74,18 @@ class AppHostTest {
                 .isInstanceOf(Settings.ParseError.class);
         assertThat(Settings.yesNo("yes")).isTrue();
     }
+
+    @Test
+    void styleScriptValuesEvaluateWithTheApplicationEngine() throws Exception {
+        Host previous = Host.get();
+        try {
+            Host.set(host);
+            Object[] size = new Object[1];
+            javax.swing.SwingUtilities.invokeAndWait(() -> size[0] = Settings
+                    .textStyle("size: {6 * 2}", null).get(java.awt.font.TextAttribute.SIZE));
+            assertThat(((Number) size[0]).intValue()).isEqualTo(12);
+        } finally {
+            Host.set(previous);
+        }
+    }
 }
