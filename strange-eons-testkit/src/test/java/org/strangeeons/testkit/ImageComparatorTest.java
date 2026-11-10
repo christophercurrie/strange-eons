@@ -133,4 +133,30 @@ class ImageComparatorTest {
                 tmp.resolve("masters"), tmp.resolve("diffs"), unmasked).stream()
                 .filter(x -> x.path().equals("c/a-1.png")).findFirst().orElseThrow().kind());
     }
+
+    @Test
+    void comparesASingleImageWithItsMaster() throws IOException {
+        png("masters/one.png", 3, 3, 0xff102030);
+        BufferedImage same = new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 3; ++y) {
+            for (int x = 0; x < 3; ++x) {
+                same.setRGB(x, y, 0xff102030);
+            }
+        }
+        Path master = tmp.resolve("masters/one.png");
+        Path diff = tmp.resolve("out/diffs/one.png");
+        assertEquals(ImageComparator.Kind.MATCH, ImageComparator.compare(same, master, diff).kind());
+        assertTrue(Files.notExists(diff));
+
+        same.setRGB(1, 1, 0xffffffff);
+        ImageComparator.Result r = ImageComparator.compare(same, master, diff);
+        assertEquals(ImageComparator.Kind.DIFFERENT, r.kind());
+        assertEquals("one.png", r.path());
+        assertTrue(Files.exists(diff));
+
+        assertEquals(ImageComparator.Kind.SIZE_CHANGED, ImageComparator.compare(
+                new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB), master, diff).kind());
+        assertEquals(ImageComparator.Kind.NO_MASTER, ImageComparator.compare(
+                same, tmp.resolve("masters/none.png"), diff).kind());
+    }
 }

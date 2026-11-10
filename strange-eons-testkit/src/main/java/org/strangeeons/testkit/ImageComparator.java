@@ -119,9 +119,29 @@ public final class ImageComparator {
         if (!Files.exists(m)) {
             return new Result(n, Kind.NO_MASTER, master.equals(n) ? "no master image" : "no master image " + master);
         }
-        Rectangle mask = plan.maskFor(n);
-        BufferedImage ai = read(a);
-        BufferedImage mi = read(m);
+        return compareImages(n, read(a), read(m), plan.maskFor(n), diffs.resolve(n));
+    }
+
+    /**
+     * Compares a rendered image with a master image file. Writes a diff image
+     * to {@code diff} if they differ.
+     *
+     * @param actual the rendered image
+     * @param master the master image file; need not exist
+     * @param diff the file that receives a diff image if they differ
+     * @return the result, whose path is the master's file name
+     * @throws IOException if the master cannot be read or the diff written
+     */
+    public static Result compare(BufferedImage actual, Path master, Path diff) throws IOException {
+        String n = master.getFileName().toString();
+        if (!Files.exists(master)) {
+            return new Result(n, Kind.NO_MASTER, "no master image");
+        }
+        return compareImages(n, actual, read(master), null, diff);
+    }
+
+    private static Result compareImages(String n, BufferedImage ai, BufferedImage mi, Rectangle mask, Path d)
+            throws IOException {
         int w = ai.getWidth();
         int h = ai.getHeight();
         if (w != mi.getWidth() || h != mi.getHeight()) {
@@ -152,8 +172,7 @@ public final class ImageComparator {
             }
             diff.setRGB(0, y, w, 1, ar, 0, w);
         }
-        Path d = diffs.resolve(n);
-        Files.createDirectories(d.getParent());
+        Files.createDirectories(d.toAbsolutePath().getParent());
         ImageIO.write(diff, "png", d.toFile());
         double pct = 100.0 * differing / ((double) w * h);
         return new Result(n, Kind.DIFFERENT, String.format("%d pixels differ (%.3f%%)", differing, pct));
