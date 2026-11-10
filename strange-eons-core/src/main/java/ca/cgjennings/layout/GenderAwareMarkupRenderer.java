@@ -1,6 +1,6 @@
 package ca.cgjennings.layout;
 
-import resources.Language;
+import org.strangeeons.core.Host;
 
 /**
  * This class overrides the {@code handleUnknownTag} method of
@@ -23,7 +23,7 @@ import resources.Language;
  * <li> {@code The <orange/yellow/red/green> key fits this lock.}
  * </ul>
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class GenderAwareMarkupRenderer extends MarkupRenderer {
 
@@ -134,7 +134,7 @@ public class GenderAwareMarkupRenderer extends MarkupRenderer {
      */
     public static String capitalize(String s) {
         if (s.length() > 1) {
-            return s.substring(0, 1).toUpperCase(Language.getGameLocale()) + s.substring(1);
+            return s.substring(0, 1).toUpperCase(Host.get().getGameLocale()) + s.substring(1);
         } else {
             return s.toUpperCase();
         }

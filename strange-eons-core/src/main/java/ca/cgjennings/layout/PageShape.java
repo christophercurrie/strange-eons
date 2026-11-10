@@ -15,7 +15,7 @@ import java.awt.geom.Rectangle2D;
  * inset values always reduce the margins; negative values increase them. A zero
  * inset leaves the margin unchanged.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class PageShape {
 
@@ -346,7 +346,7 @@ public class PageShape {
      * shape always uses the narrowest margin of the two source shapes at any
      * given Y-position. For example, to ensure that a shape never has a
      * negative inset (making the text wider than the requested rectangle),
-     * merge it with <tt>PageShape.RECTANGLE_SHAPE</tt>.
+     * merge it with {@code PageShape.RECTANGLE_SHAPE}.
      */
     public static class MergedShape extends PageShape {
 

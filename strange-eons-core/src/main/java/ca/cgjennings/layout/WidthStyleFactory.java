@@ -5,7 +5,7 @@ import java.awt.font.TextAttribute;
 /**
  * Produce different text widths based on the parameter to the width tag.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class WidthStyleFactory implements ParametricStyleFactory {
 

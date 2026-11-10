@@ -9,7 +9,7 @@ import java.awt.image.BufferedImage;
  * algorithmically, pure vector images can be scaled to arbitrary sizes without
  * losing definition and becoming blocky as bitmap images do.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 3.0
  */
 public interface VectorImage {

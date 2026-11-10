@@ -17,7 +17,7 @@ import java.awt.image.BufferedImage;
  * {@link #ty}, {@link #iw}, and {@link #ih} to appropriate values and implement
  * the {@link #render(java.awt.Graphics2D)} method.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 3.0
  */
 public abstract class AbstractVectorImage implements VectorImage {

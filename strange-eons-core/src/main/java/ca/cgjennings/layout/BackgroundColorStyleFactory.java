@@ -7,7 +7,7 @@ import java.awt.font.TextAttribute;
  * of the first parameter. It is parsed similarly to colours in HTML, using a
  * parameter of the form #rrggbb or #aarrggbb.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class BackgroundColorStyleFactory extends ForegroundColorStyleFactory {
 

@@ -9,7 +9,7 @@ import java.util.Arrays;
  * useful when performing text layout, as break point analysis is used heavily
  * during this process.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 2.0
  */
 public final class FastBreakIterator extends BreakIterator {

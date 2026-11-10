@@ -11,7 +11,7 @@ import java.util.Map.Entry;
  * A combination of {@code TextAttribute}s that represents a particular style of
  * text (a heading, for example).
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class TextStyle {
 

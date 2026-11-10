@@ -15,6 +15,7 @@
 - `strange-eons-core` includes the image filters and blend modes (`ca.cgjennings.graphics.filters`, `ca.cgjennings.graphics.composites`), `ca.cgjennings.math`, and the split-join classes of `ca.cgjennings.algo`, under their existing names. `ImageUtilities` delegates its pixel format conversions to `org.strangeeons.core.graphics.ImageFormats`.
 - Fix PSD layers that use darken, lighten, hue, saturation, color, luminosity, multiply, screen, overlay, hard light, soft light or difference blending: `BlendMode.derive` threw for every built-in mode.
 - Fix `new TintFilter(0, 1, 1).isIdentity()` returning false.
+- `strange-eons-core` includes markup layout (`ca.cgjennings.layout`), `resources.StrangeImage`, `VectorImage` and `AbstractVectorImage` under their existing names. Image preparation, SVG loading, stand-in images, font family names and the game locale come from `org.strangeeons.core.Host`, which the application installs at startup; its defaults let markup render without the application.
 - Publish `org.strangeeons:strange-eons-core`, application code shared with plug-ins. `EscapedLineReader`, `EscapedLineWriter` and `EscapedTextCodec` move to `org.strangeeons.core.io`, and `LineWrapper` to `org.strangeeons.core.text`; the `ca.cgjennings` names remain, deprecated.
 - Publish `org.strangeeons:strange-eons-testkit`, test support for plug-ins. It starts with render comparison against reference masters (`ImageComparator`, `MasterPlan`).
 

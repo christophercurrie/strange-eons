@@ -33,6 +33,7 @@ import ca.cgjennings.graphics.shapes.SVGVectorImage;
 import ca.cgjennings.graphics.shapes.VectorIcon;
 import ca.cgjennings.graphics.shapes.VectorImage;
 import org.strangeeons.core.io.EscapedLineReader;
+import org.strangeeons.core.Host;
 import org.strangeeons.core.resources.ResourceResolver;
 import org.strangeeons.core.resources.ResourceRoot;
 import ca.cgjennings.io.InvalidFileFormatException;
@@ -258,10 +259,12 @@ public class ResourceKit {
 
     /**
      * Makes the application's resource search order the one used by the
-     * {@code res:} and {@code project:} URL protocols.
+     * {@code res:} and {@code project:} URL protocols, and supplies core code
+     * with the application's image, font and language services.
      */
-    public static void installResourceResolver() {
+    public static void installCoreServices() {
         ResourceResolver.setDefault(resolver);
+        Host.set(new AppHost());
     }
 
     private static URL openProjectFolder() {

@@ -20,7 +20,7 @@ import resources.StrangeImage;
  * This approach allow us to ensure that the markup is processed in exactly the
  * same way as standard markup before being handed to the HTML converter.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class MarkupToHTMLConverter extends MarkupRenderer {
 

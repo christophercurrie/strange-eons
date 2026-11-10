@@ -5,7 +5,7 @@ import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
-import resources.ResourceKit;
+import org.strangeeons.core.Host;
 import resources.StrangeImage;
 
 /**
@@ -13,7 +13,7 @@ import resources.StrangeImage;
  * This factory is not normally created directly, but rather is used indirectly
  * from a {@link MarkupRenderer}.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 1.5
  */
 public final class GraphicStyleFactory implements ParametricStyleFactory {
@@ -242,12 +242,12 @@ public final class GraphicStyleFactory implements ParametricStyleFactory {
      * @return the shared missing image
      *
      * @deprecated Use {@link StrangeImage} to load user images and
-     * {@link ResourceKit#getMissingImage()} or
+     * {@link org.strangeeons.core.Host#getMissingImage()} or
      * {@link StrangeImage#getMissingImage()} to get the missing image as a
      * {@link BufferedImage} or {@link StrangeImage}, respectively.
      */
     @Deprecated
     public static BufferedImage getMissingImage() {
-        return ResourceKit.getMissingImage();
+        return Host.get().getMissingImage();
     }
 }

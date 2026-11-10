@@ -9,7 +9,7 @@ import java.awt.font.TextLayout;
  * appending a sequence of segments that represent what it would have drawn if
  * it had been drawing. Note that a line may consist of multiple segments.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class LayoutSegment {
 

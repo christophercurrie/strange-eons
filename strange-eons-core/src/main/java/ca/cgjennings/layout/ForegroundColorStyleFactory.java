@@ -12,7 +12,7 @@ import java.awt.font.TextAttribute;
  * 1 that describe hue, saturation, brightness, and (optionally) alpha
  * components as an angle (hue) and ratios, e.g. "180 0.5 0.5 0.5".
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class ForegroundColorStyleFactory implements ParametricStyleFactory {
 

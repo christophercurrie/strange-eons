@@ -85,7 +85,7 @@ import java.util.logging.Logger;
  * to parse tags that include masculine and feminine variants that are selected
  * based upon a gender supplied to the renderer (as in &lt;his/her&gt;).
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class MarkupRenderer {
 

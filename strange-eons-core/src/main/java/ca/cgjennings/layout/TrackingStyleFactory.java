@@ -5,7 +5,7 @@ import java.awt.font.TextAttribute;
 /**
  * A parametric style that changes text tracking (spacing between letters).
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class TrackingStyleFactory implements ParametricStyleFactory {
 

@@ -11,7 +11,7 @@ import resources.StrangeImage;
  * to render inline images. The attribute is responsible for sizing and painting
  * the image as part of a text layout.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 3.0.3696; based on SizedImageGraphicAttribute, which was retired
  */
 final class StrangeImageAttribute extends GraphicAttribute {

@@ -17,7 +17,7 @@ import java.util.Locale;
  * be filtered out. The next valid break in the same direction will then be
  * substituted until an acceptable break is found.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public abstract class BreakIteratorAdpater extends BreakIterator {
 

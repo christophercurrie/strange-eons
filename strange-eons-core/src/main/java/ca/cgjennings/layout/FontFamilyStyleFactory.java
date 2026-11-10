@@ -2,12 +2,12 @@ package ca.cgjennings.layout;
 
 import java.awt.font.TextAttribute;
 
-import resources.ResourceKit;
+import org.strangeeons.core.Host;
 
 /**
  * A parametric style that changes the font family.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 public class FontFamilyStyleFactory implements ParametricStyleFactory {
 
@@ -17,7 +17,7 @@ public class FontFamilyStyleFactory implements ParametricStyleFactory {
         if (parameters.length >= 1) {
             family = parameters[0];
         }
-        family = ResourceKit.normalizeFontFamilyName(family);
+        family = Host.get().resolveFontFamily(family);
         return new TextStyle(TextAttribute.FAMILY, family);
     }
 

@@ -8,7 +8,7 @@ import java.util.Locale;
  * Wraps a BreakIterator.getLineInstance() to fix bugs in the Sun/Taligent
  * implementation.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  */
 class LineBreakIterator extends BreakIteratorAdpater {
 

@@ -230,36 +230,7 @@ public final class ImageUtilities {
      * is not already of that type
      */
     public static BufferedImage imageToBufferedImage(Image image) {
-        if (Objects.requireNonNull(image, "image") instanceof BufferedImage) {
-            return (BufferedImage) image;
-        }
-        
-        waitForImage(image);
-        
-        // default to ARGB, but try to detect RGB
-        int type = BufferedImage.TYPE_INT_ARGB;
-        final int w = image.getWidth(null);
-        final int h = image.getHeight(null);
-        try {
-            PixelGrabber grabber = new PixelGrabber(image, w-1, h-1, 1, 1, false);
-            grabber.grabPixels();
-            if (!grabber.getColorModel().hasAlpha()) {
-                type = BufferedImage.TYPE_INT_RGB;
-            }
-        } catch (InterruptedException | RuntimeException ex) {
-            // stick with default type, which is safe to use
-        }
-
-        // convert image
-        final BufferedImage im = new BufferedImage(w, h, type);
-        Graphics2D g = im.createGraphics();
-        try {
-            g.drawImage(image, 0, 0, null);
-        } finally {
-            g.dispose();
-        }
-
-        return im;
+        return ImageFormats.imageToBufferedImage(image);
     }
 
     /**
@@ -591,14 +562,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static double idealCoveringScaleForImage(double idealWidth, double idealHeight, double imageWidth, double imageHeight) {
-        double hScale = idealWidth / imageWidth;
-        double vScale = idealHeight / imageHeight;
-
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**
@@ -618,14 +582,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static float idealCoveringScaleForImage(float idealWidth, float idealHeight, float imageWidth, float imageHeight) {
-        float hScale = idealWidth / imageWidth;
-        float vScale = idealHeight / imageHeight;
-
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**
@@ -645,13 +602,7 @@ public final class ImageUtilities {
      * specified area
      */
     public static float idealCoveringScaleForImage(int idealWidth, int idealHeight, int imageWidth, int imageHeight) {
-        float hScale = idealWidth / (float) imageWidth;
-        float vScale = idealHeight / (float) imageHeight;
-        if (hScale < vScale) {
-            return vScale;
-        } else {
-            return hScale;
-        }
+        return ImageFormats.idealCoveringScaleForImage(idealWidth, idealHeight, imageWidth, imageHeight);
     }
 
     /**

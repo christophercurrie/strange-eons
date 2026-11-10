@@ -74,4 +74,27 @@ class ImageFormatsTest {
         BufferedImage im = image(BufferedImage.TYPE_INT_RGB);
         assertThat(ImageFormats.waitForImage(im)).isSameAs(im);
     }
+
+    @Test
+    void convertsAnyImageToABufferedImage() {
+        BufferedImage bi = image(BufferedImage.TYPE_INT_RGB);
+        assertThat(ImageFormats.imageToBufferedImage(bi)).isSameAs(bi);
+        Image opaque = bi.getScaledInstance(6, 4, Image.SCALE_FAST);
+        BufferedImage fromOpaque = ImageFormats.imageToBufferedImage(opaque);
+        assertThat(fromOpaque.getWidth()).isEqualTo(6);
+        assertThat(fromOpaque.getType()).isEqualTo(BufferedImage.TYPE_INT_RGB);
+        Image translucent = image(BufferedImage.TYPE_INT_ARGB).getScaledInstance(6, 4, Image.SCALE_FAST);
+        assertThat(ImageFormats.imageToBufferedImage(translucent).getType()).isEqualTo(BufferedImage.TYPE_INT_ARGB);
+        assertThatThrownBy(() -> ImageFormats.imageToBufferedImage(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void coveringScaleFillsTheArea() {
+        assertThat(ImageFormats.idealCoveringScaleForImage(100.0, 50.0, 10.0, 10.0)).isEqualTo(10.0);
+        assertThat(ImageFormats.idealCoveringScaleForImage(50.0, 100.0, 10.0, 10.0)).isEqualTo(10.0);
+        assertThat(ImageFormats.idealCoveringScaleForImage(100f, 50f, 10f, 10f)).isEqualTo(10f);
+        assertThat(ImageFormats.idealCoveringScaleForImage(50f, 100f, 10f, 10f)).isEqualTo(10f);
+        assertThat(ImageFormats.idealCoveringScaleForImage(100, 50, 10, 10)).isEqualTo(10f);
+        assertThat(ImageFormats.idealCoveringScaleForImage(50, 100, 10, 10)).isEqualTo(10f);
+    }
 }

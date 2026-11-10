@@ -1,9 +1,8 @@
 package resources;
 
-import ca.cgjennings.apps.arkham.StrangeEons;
-import ca.cgjennings.graphics.ImageUtilities;
+import org.strangeeons.core.Host;
+import org.strangeeons.core.graphics.ImageFormats;
 import ca.cgjennings.graphics.shapes.AbstractVectorImage;
-import ca.cgjennings.graphics.shapes.SVGVectorImage;
 import ca.cgjennings.graphics.shapes.VectorImage;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -19,6 +18,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
@@ -41,10 +41,13 @@ import javax.imageio.ImageIO;
  * representation of an image with a zero width or height, return an
  * {@linkplain #getInvisibleImage() invisible image} instead.
  *
- * @author Chris Jennings <https://cgjennings.ca/contact>
+ * @author Chris Jennings {@literal <https://cgjennings.ca/contact>}
  * @since 3.0.3695
  */
 public abstract class StrangeImage {
+
+    /** Logs to the application log by name. */
+    private static final Logger LOG = Logger.getLogger("ca.cgjennings.apps.arkham.StrangeEons");
     // the timestamp is used by the built-in cache for images loaded from a file
 
     private long timestamp;
@@ -195,7 +198,7 @@ public abstract class StrangeImage {
      * height. When painting the image at a particular width or height, one can
      * calculate the value for other dimension that will maintain the same image
      * shape using the aspect ratio:
-     * <table border=0>
+     * <table>
      * <caption>Compute size from aspect ratio</caption>
      * <tr><th>Known Dimension:&nbsp;<th>Other Dimension Calculated Using:</tr>
      * <tr><td>width<td>height = width / aspectRatio</tr>
@@ -254,7 +257,7 @@ public abstract class StrangeImage {
         private final int h;
 
         public Bitmap(BufferedImage bi) {
-            this.bi = ResourceKit.prepareNewImage(bi);
+            this.bi = Host.get().prepareImage(bi);
             w = bi.getWidth();
             h = bi.getHeight();
         }
@@ -264,7 +267,7 @@ public abstract class StrangeImage {
             if (width == w && height == h) {
                 g.drawImage(bi, x, y, null);
             } else if (fitToSize) {
-                float scale = ImageUtilities.idealCoveringScaleForImage(width, height, w, h);
+                float scale = ImageFormats.idealCoveringScaleForImage(width, height, w, h);
                 int fw = Math.round(scale * w);
                 int fh = Math.round(scale * h);
                 g.drawImage(bi, x + (width - fw) / 2, y + (height - fh) / 2, null);
@@ -419,7 +422,7 @@ public abstract class StrangeImage {
             throw new NullPointerException("source");
         }
 
-        return new Bitmap(ImageUtilities.imageToBufferedImage(source));
+        return new Bitmap(ImageFormats.imageToBufferedImage(source));
     }
 
     /**
@@ -463,13 +466,14 @@ public abstract class StrangeImage {
                     String suffix = identifier.substring(dot + 1).toLowerCase(Locale.CANADA);
                     if (suffix.equals("svg") || suffix.equals("svgz")) {
                         try {
-                            si = create(new SVGVectorImage(url));
-                        } catch (CoreComponents.MissingCoreComponentException mcc) {
-                            // core not installed; will get missing image
+                            VectorImage vi = Host.get().loadVectorImage(url);
+                            if (vi != null) {
+                                si = create(vi);
+                            }
                         } catch (FileNotFoundException fnf) {
                             si = getMissingImage();
                         } catch (IOException e) {
-                            StrangeEons.log.log(Level.WARNING, "failed to load SVG: " + identifier, e);
+                            LOG.log(Level.WARNING, "failed to load SVG: " + identifier, e);
                         }
                         if (si == null) {
                             si = getMissingImage();
@@ -482,13 +486,13 @@ public abstract class StrangeImage {
                     try {
                         BufferedImage bi = ImageIO.read(url);
                         if (bi != null) {
-                            bi = ResourceKit.prepareNewImage(bi);
+                            bi = Host.get().prepareImage(bi);
                             si = create(bi);
                         }
                     } catch (FileNotFoundException fnf) {
                         si = getMissingImage();
                     } catch (IOException e) {
-                        StrangeEons.log.log(Level.WARNING, "failed to load bitmap: " + identifier, e);
+                        LOG.log(Level.WARNING, "failed to load bitmap: " + identifier, e);
                     }
                 }
 
@@ -554,7 +558,7 @@ public abstract class StrangeImage {
         BufferedImage bi;
         StrangeImage si = StrangeImage.get(identifier);
         if (si == StrangeImage.getMissingImage()) {
-            bi = ResourceKit.getMissingImage();
+            bi = Host.get().getMissingImage();
         } else {
             bi = si.asBufferedImage();
         }
@@ -597,7 +601,7 @@ public abstract class StrangeImage {
                     url = new URL(identifier);
                 }
             } catch (MalformedURLException e) {
-                StrangeEons.log.log(Level.WARNING, null, e);
+                LOG.log(Level.WARNING, null, e);
             }
         }
         return url;
@@ -695,10 +699,13 @@ public abstract class StrangeImage {
      * @return the shared missing image
      */
     public static synchronized StrangeImage getMissingImage() {
-        if (missing == null) {
-            missing = create(ResourceKit.getMissingVectorImage());
+        VectorImage vi = Host.get().getMissingVectorImage();
+        if (missing == null || missingSource != vi) {
+            missing = create(vi);
+            missingSource = vi;
         }
         return missing;
     }
     private static StrangeImage missing;
+    private static VectorImage missingSource;
 }

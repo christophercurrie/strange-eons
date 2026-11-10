@@ -5,10 +5,12 @@ import java.awt.Image;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.awt.image.PixelGrabber;
 import java.util.Objects;
 
 /**
- * Converts images between pixel formats.
+ * Converts images between pixel formats and computes scales for fitting
+ * images to an area.
  */
 public final class ImageFormats {
 
@@ -214,5 +216,129 @@ public final class ImageFormats {
         }
         
         return im;
+    }
+
+    /**
+     * Returns a {@link BufferedImage} that is equivalent to a specified
+     * {@link Image}. If the image is already a {@code BufferedImage}, it is
+     * returned unmodified. Otherwise, a new {@code BufferedImage} will be
+     * created and the contents of the image copied into it. If necessary, the
+     * method will wait until the image has finished downloading.
+     *
+     * @param image the non-null image to convert
+     * @return the original image, converted into a {@code BufferedImage} if it
+     * is not already of that type
+     */
+    public static BufferedImage imageToBufferedImage(Image image) {
+        if (Objects.requireNonNull(image, "image") instanceof BufferedImage) {
+            return (BufferedImage) image;
+        }
+        
+        waitForImage(image);
+        
+        // default to ARGB, but try to detect RGB
+        int type = BufferedImage.TYPE_INT_ARGB;
+        final int w = image.getWidth(null);
+        final int h = image.getHeight(null);
+        try {
+            PixelGrabber grabber = new PixelGrabber(image, w-1, h-1, 1, 1, false);
+            grabber.grabPixels();
+            if (!grabber.getColorModel().hasAlpha()) {
+                type = BufferedImage.TYPE_INT_RGB;
+            }
+        } catch (InterruptedException | RuntimeException ex) {
+            // stick with default type, which is safe to use
+        }
+
+        // convert image
+        final BufferedImage im = new BufferedImage(w, h, type);
+        Graphics2D g = im.createGraphics();
+        try {
+            g.drawImage(image, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+
+        return im;
+    }
+
+    /**
+     * Returns the largest scaling factor that, when multiplied by the given
+     * image size, ensures that the image will match the ideal size in at least
+     * one dimension. The image will either match the ideal size in the other
+     * dimension, or else be larger than the other ideal dimension. If the image
+     * is opaque, the result is the scaling factor needed to obtain the smallest
+     * image with the same aspect ratio that would completely cover the ideal
+     * image area.
+     *
+     * @param idealWidth the width of the area the image must cover
+     * @param idealHeight the height of the area the image must cover
+     * @param imageWidth the current width of the image to be fitted
+     * @param imageHeight the current height of the image to be fitted
+     * @return the scale that would ensure that the image would just cover the
+     * specified area
+     */
+    public static double idealCoveringScaleForImage(double idealWidth, double idealHeight, double imageWidth, double imageHeight) {
+        double hScale = idealWidth / imageWidth;
+        double vScale = idealHeight / imageHeight;
+
+        if (hScale < vScale) {
+            return vScale;
+        } else {
+            return hScale;
+        }
+    }
+
+    /**
+     * Returns the largest scaling factor that, when multiplied by the given
+     * image size, ensures that the image will match the ideal size in at least
+     * one dimension. The image will either match the ideal size in the other
+     * dimension, or else be larger than the other ideal dimension. If the image
+     * is opaque, the result is the scaling factor to obtain the smallest image
+     * with the same aspect ratio that would completely cover the ideal image
+     * area.
+     *
+     * @param idealWidth the width of the area the image must cover
+     * @param idealHeight the height of the area the image must cover
+     * @param imageWidth the current width of the image to be fitted
+     * @param imageHeight the current height of the image to be fitted
+     * @return the scale that would ensure that the image would just cover the
+     * specified area
+     */
+    public static float idealCoveringScaleForImage(float idealWidth, float idealHeight, float imageWidth, float imageHeight) {
+        float hScale = idealWidth / imageWidth;
+        float vScale = idealHeight / imageHeight;
+
+        if (hScale < vScale) {
+            return vScale;
+        } else {
+            return hScale;
+        }
+    }
+
+    /**
+     * Returns the largest scaling factor that, when multiplied by the given
+     * image size, ensures that the image will match the ideal size in at least
+     * one dimension. The image will either match the ideal size in the other
+     * dimension, or else be larger than the other ideal dimension. If the image
+     * is opaque, the result is the scaling factor to obtain the smallest image
+     * with the same aspect ratio that would completely cover the ideal image
+     * area.
+     *
+     * @param idealWidth the width of the area the image must cover
+     * @param idealHeight the height of the area the image must cover
+     * @param imageWidth the current width of the image to be fitted
+     * @param imageHeight the current height of the image to be fitted
+     * @return the scale that would ensure that the image would just cover the
+     * specified area
+     */
+    public static float idealCoveringScaleForImage(int idealWidth, int idealHeight, int imageWidth, int imageHeight) {
+        float hScale = idealWidth / (float) imageWidth;
+        float vScale = idealHeight / (float) imageHeight;
+        if (hScale < vScale) {
+            return vScale;
+        } else {
+            return hScale;
+        }
     }
 }
