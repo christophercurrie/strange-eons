@@ -1,12 +1,12 @@
-package ca.cgjennings.apps.arkham.diy.spi;
+package org.strangeeons.core.editor;
 
-import ca.cgjennings.apps.arkham.plugins.UILibraryHelper;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -16,14 +16,14 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
 import org.strangeeons.plugins.observable.MutableObservable;
-import resources.Settings;
+import org.strangeeons.core.settings.SettingValues;
 
 /**
  * Adapts a Swing control to a {@link MutableObservable} of its setting
  * value. Notifications are pushed as the control changes, so a control
  * can be bound without polling.
  */
-final class SwingValue implements MutableObservable<String> {
+public final class SwingValue implements MutableObservable<String> {
 
     private final Supplier<String> getter;
     private final Consumer<String> setter;
@@ -41,7 +41,7 @@ final class SwingValue implements MutableObservable<String> {
      * @throws IllegalArgumentException if the control has no standard
      *     binding
      */
-    static SwingValue of(JComponent control) {
+    public static SwingValue of(JComponent control) {
         Objects.requireNonNull(control, "control");
         if (control instanceof JScrollPane scroll
                 && scroll.getViewport().getView() instanceof JComponent view) {
@@ -61,19 +61,31 @@ final class SwingValue implements MutableObservable<String> {
     }
 
     /** Returns the value of a group of buttons mapped to setting values. */
-    static SwingValue ofGroup(List<? extends AbstractButton> buttons, List<String> values) {
-        UILibraryHelper.BindableGroup group = new UILibraryHelper.BindableGroup(
-                buttons.toArray(new AbstractButton[0]), values.toArray(new String[0]));
+    public static SwingValue ofGroup(List<? extends AbstractButton> buttons, List<String> values) {
+        if (buttons.isEmpty()) {
+            throw new IllegalArgumentException("no buttons were specified");
+        }
+        if (buttons.size() != values.size()) {
+            throw new IllegalArgumentException("number of values does not match number of buttons");
+        }
+        ButtonGroup group = new ButtonGroup();
+        for (int i = 0; i < buttons.size(); ++i) {
+            group.add(Objects.requireNonNull(buttons.get(i), "buttons[" + i + ']'));
+            Objects.requireNonNull(values.get(i), "values[" + i + ']');
+        }
         SwingValue value = new SwingValue(
                 () -> values.stream()
                         .filter(v -> buttons.get(values.indexOf(v)).isSelected())
                         .findFirst().orElse(null),
                 v -> {
-                    if (values.contains(v)) {
-                        group.fromSetting(v);
+                    int i = values.indexOf(v);
+                    if (i >= 0) {
+                        buttons.get(i).setSelected(true);
                     }
                 });
-        group.addActionListener(e -> value.fire());
+        for (AbstractButton b : buttons) {
+            b.addActionListener(e -> value.fire());
+        }
         return value;
     }
 
@@ -89,7 +101,7 @@ final class SwingValue implements MutableObservable<String> {
     private static SwingValue ofToggle(JToggleButton toggle) {
         SwingValue value = new SwingValue(
                 () -> toggle.isSelected() ? "1" : "0",
-                v -> toggle.setSelected(Settings.yesNo(v)));
+                v -> toggle.setSelected(SettingValues.yesNo(v)));
         toggle.addItemListener(e -> value.fire());
         return value;
     }

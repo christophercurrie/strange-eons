@@ -3,6 +3,7 @@ package ca.cgjennings.apps.arkham.diy.spi;
 import ca.cgjennings.apps.arkham.StrangeEonsEditor;
 import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYEditor;
+import ca.cgjennings.apps.arkham.sheet.Sheet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +12,8 @@ import javax.swing.JComponent;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.text.JTextComponent;
+import org.strangeeons.core.editor.SettingBinding;
+import org.strangeeons.core.editor.SwingValue;
 import org.strangeeons.plugins.conventional.EditorControls;
 import org.strangeeons.plugins.conventional.EditorPanel;
 import org.strangeeons.plugins.observable.MutableObservable;
@@ -57,7 +60,7 @@ public final class DIYEditorPanel implements EditorPanel {
 
     @Override
     public void bind(String key, MutableObservable<String> value, int... faces) {
-        bindings.add(new SettingBinding(key, value, diy, faces));
+        bindings.add(new SettingBinding(key, value, diy::getSettings, this::faceCount, diy::markChanged, faces));
     }
 
     @Override
@@ -89,6 +92,11 @@ public final class DIYEditorPanel implements EditorPanel {
     /** Starts following populate events from the editor. */
     public void attach() {
         editor.addFieldPopulationListener((StrangeEonsEditor.FieldPopulationListener) source -> populate());
+    }
+
+    private int faceCount() {
+        Sheet<?>[] sheets = diy.getSheets();
+        return sheets == null ? -1 : sheets.length;
     }
 
     private void populate() {
