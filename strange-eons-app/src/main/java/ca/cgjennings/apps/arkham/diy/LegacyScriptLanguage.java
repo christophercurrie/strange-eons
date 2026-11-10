@@ -10,15 +10,21 @@ import org.strangeeons.scripts.ScriptSession;
 import resources.Settings;
 
 /**
- * Runs {@code .js} handler scripts through {@link ScriptMonkey} for one
- * component. Not registered with {@link java.util.ServiceLoader}: sessions read
- * the component's settings through {@code $} notation, so each component has
- * its own instance.
+ * Runs JavaScript through {@link ScriptMonkey}. Sessions read settings through
+ * {@code $} notation, so each component creates its own instance for its
+ * settings. The instance registered with {@link java.util.ServiceLoader}, used
+ * when code looks up the {@code javascript} language, reads the shared
+ * settings.
  */
-final class LegacyScriptLanguage implements ScriptLanguage {
+public final class LegacyScriptLanguage implements ScriptLanguage {
 
     private final Settings settings;
     private final boolean debug;
+
+    /** Creates the language for the shared settings, without debugging. */
+    public LegacyScriptLanguage() {
+        this(Settings.getShared(), false);
+    }
 
     LegacyScriptLanguage(Settings settings, boolean debug) {
         this.settings = settings;

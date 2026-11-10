@@ -7,6 +7,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.strangeeons.core.Host;
 
 /**
@@ -46,10 +48,26 @@ final class AppHost implements Host {
         return ResourceKit.normalizeFontFamilyName(family);
     }
 
+    /**
+     * Evaluates a style value through the registered JavaScript language,
+     * caching the result by source text. Opening a style-heavy deck evaluates
+     * the same few literals thousands of times. Rhino {@code Scriptable}
+     * results are not cached, since they keep their script scope alive.
+     */
     @Override
     public Object evaluateStyleLiteral(String code) {
-        return Settings.evaluateStyleLiteral(code);
+        Object cached = STYLE_LITERAL_CACHE.get(code);
+        if (cached != null) {
+            return cached;
+        }
+        Object result = Host.super.evaluateStyleLiteral(code);
+        if (result != null && !(result instanceof org.mozilla.javascript.Scriptable)) {
+            STYLE_LITERAL_CACHE.put(code, result);
+        }
+        return result;
     }
+
+    private static final ConcurrentMap<String, Object> STYLE_LITERAL_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public Locale getGameLocale() {

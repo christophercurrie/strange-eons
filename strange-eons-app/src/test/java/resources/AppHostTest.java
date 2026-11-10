@@ -76,16 +76,31 @@ class AppHostTest {
     }
 
     @Test
-    void styleScriptValuesEvaluateWithTheApplicationEngine() throws Exception {
+    void styleScriptValuesEvaluateWithTheRegisteredJavaScript() {
         Host previous = Host.get();
         try {
             Host.set(host);
-            Object[] size = new Object[1];
-            javax.swing.SwingUtilities.invokeAndWait(() -> size[0] = Settings
-                    .textStyle("size: {6 * 2}", null).get(java.awt.font.TextAttribute.SIZE));
-            assertThat(((Number) size[0]).intValue()).isEqualTo(12);
+            Object size = Settings.textStyle("size: {6 * 2}", null).get(java.awt.font.TextAttribute.SIZE);
+            assertThat(((Number) size).intValue()).isEqualTo(12);
         } finally {
             Host.set(previous);
         }
+    }
+
+    @Test
+    void styleScriptValuesAreCachedUnlessTheyAreScriptObjects() {
+        Object first = host.evaluateStyleLiteral("'cached' + 'value'");
+        assertThat(host.evaluateStyleLiteral("'cached' + 'value'")).isSameAs(first);
+        Object object = host.evaluateStyleLiteral("({a: 1})");
+        assertThat(object).isInstanceOf(org.mozilla.javascript.Scriptable.class);
+        assertThat(host.evaluateStyleLiteral("({a: 1})")).isNotSameAs(object);
+        // ScriptMonkey reports script errors to the console and yields null
+        assertThat(host.evaluateStyleLiteral("throw new Error('boom')")).isNull();
+    }
+
+    @Test
+    void javascriptIsARegisteredLanguage() {
+        assertThat(org.strangeeons.core.scripts.ScriptLanguages.find("javascript"))
+                .isInstanceOf(ca.cgjennings.apps.arkham.diy.LegacyScriptLanguage.class);
     }
 }

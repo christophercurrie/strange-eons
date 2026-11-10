@@ -1960,47 +1960,6 @@ public class Settings implements Serializable, Iterable<String>,
     }
 
     /**
-     * Evaluates a {@code {...}} style literal value, caching the result by
-     * source text. The previous design constructed a fresh {@link ScriptMonkey}
-     * per literal, which on a 12-component AHLCG deck open meant ~5400
-     * full-engine allocations to evaluate ~73 unique source strings
-     * (98.6% hit rate). Caching the result eliminates the per-literal
-     * engine churn while preserving the original semantics.
-     *
-     * <p>Only "safe" results — primitives, boxed wrappers, strings, and
-     * other plain Java objects — are cached. A Rhino {@code Scriptable}
-     * (e.g. a {@code NativeObject} from a JS object literal) carries a
-     * reference back to its parent scope and thus to the producing
-     * {@link ScriptMonkey}; caching one would re-introduce the issue #7
-     * retention pattern. Such results fall through to the slow path on
-     * every call. In practice no AHLCG-style literal returns a
-     * {@code Scriptable}.
-     */
-    static Object evaluateStyleLiteral(String valueText) {
-        Object cached = STYLE_LITERAL_CACHE.get(valueText);
-        if (cached != null) {
-            return cached;
-        }
-        ScriptMonkey evaluator = new ScriptMonkey("style setting literal");
-        evaluator.eval(STYLE_LITERAL_IMPORTS);
-        Object result = evaluator.eval(valueText);
-        if (result != null && !(result instanceof org.mozilla.javascript.Scriptable)) {
-            STYLE_LITERAL_CACHE.put(valueText, result);
-        }
-        return result;
-    }
-
-    private static final java.util.concurrent.ConcurrentMap<String, Object> STYLE_LITERAL_CACHE
-            = new java.util.concurrent.ConcurrentHashMap<>();
-
-    private static final String STYLE_LITERAL_IMPORTS
-            = "importPackage(gamedata);"
-            + "importPackage(resources);"
-            + "importClass(java.awt.font.TextAttribute);"
-            + "importClass(java.awt.font.TransformAttribute);"
-            + "importClass(java.awt.geom.AffineTransform);";
-
-    /**
      * Returns a text-fitting method constant from the value of the specified
      * key;
      * <i>the key name will have {@code -text-fitting} appended if necessary.

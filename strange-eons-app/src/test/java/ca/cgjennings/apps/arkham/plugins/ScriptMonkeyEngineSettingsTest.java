@@ -3,17 +3,18 @@ package ca.cgjennings.apps.arkham.plugins;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.cgjennings.apps.arkham.plugins.engine.SEScriptEngineFactory;
-import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
+import org.strangeeons.core.scripts.ScriptLanguages;
+import org.strangeeons.scripts.ScriptSession;
 import resources.Settings;
 
 class ScriptMonkeyEngineSettingsTest {
 
     @Test
     void evaluatesWithoutApplicationStartup() throws Exception {
-        Object[] result = new Object[1];
-        SwingUtilities.invokeAndWait(() -> result[0] = new ScriptMonkey("unit test").eval("6 * 2"));
-        assertThat(((Number) result[0]).intValue()).isEqualTo(12);
+        try (ScriptSession session = ScriptLanguages.find(ScriptLanguages.JAVASCRIPT).createSession()) {
+            assertThat(((Number) session.eval("6 * 2", "unit test")).intValue()).isEqualTo(12);
+        }
     }
 
     @Test
