@@ -1,4 +1,4 @@
-package ca.cgjennings.apps.arkham.observable;
+package org.strangeeons.core.observable;
 
 import java.util.ArrayList;
 import java.util.List;

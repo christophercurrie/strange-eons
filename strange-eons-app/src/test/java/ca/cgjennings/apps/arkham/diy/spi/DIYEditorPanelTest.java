@@ -6,7 +6,7 @@ import ca.cgjennings.apps.arkham.StrangeEonsEditor;
 import ca.cgjennings.apps.arkham.diy.DIY;
 import ca.cgjennings.apps.arkham.diy.DIYEditor;
 import ca.cgjennings.apps.arkham.diy.ListItem;
-import ca.cgjennings.apps.arkham.observable.AtomicObservable;
+import org.strangeeons.core.observable.AtomicObservable;
 import ca.cgjennings.apps.arkham.sheet.Sheet;
 import java.awt.Canvas;
 import java.util.ArrayList;

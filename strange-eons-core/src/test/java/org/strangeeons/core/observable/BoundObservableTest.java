@@ -1,4 +1,4 @@
-package ca.cgjennings.apps.arkham.observable;
+package org.strangeeons.core.observable;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
