@@ -2,10 +2,8 @@ package org.strangeeons.testkit;
 
 import ca.cgjennings.layout.MarkupRenderer;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -15,16 +13,6 @@ import java.util.Objects;
  */
 public final class MarkupImages {
 
-    private static final Map<RenderingHints.Key, Object> HINTS = Map.of(
-            RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY,
-            RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON,
-            RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY,
-            RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE,
-            RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON,
-            RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC,
-            RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY,
-            RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE,
-            RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
     private MarkupImages() {
     }
@@ -73,7 +61,7 @@ public final class MarkupImages {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         try {
-            g.setRenderingHints(HINTS);
+            g.setRenderingHints(StandardRendering.EXPORT_HINTS);
             renderer.setMarkupText(markup);
             renderer.draw(g, region);
         } finally {
