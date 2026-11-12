@@ -14,6 +14,12 @@ public class CatDesignSupport extends FillInPreferenceCategory {
 
         heading(string("sd-l-design-support"));
 
+        label(string("sd-l-component-navigation"));
+        addDropDown("component-navigation",
+                new String[]{string("sd-c-navigation-tabs"), string("sd-c-navigation-side")},
+                new String[]{"tabs", "side"});
+        note(string("sd-l-navigation-note"));
+
         addCheckBox("show-consequence-displays", string("sd-b-conseq-disp"), false);
 
         subheading(string("sd-l-validation"));

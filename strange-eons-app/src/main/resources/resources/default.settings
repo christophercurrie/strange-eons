@@ -770,3 +770,6 @@ browser-search = http://www.google.com/search?q=%s
 # If true, the documents are listed in a tree by default; otherwise in a list
 # (The tree view is only available for collections with packages.)
 browser-use-tree-view = true
+
+# Component settings navigation: tabs or side
+component-navigation = tabs

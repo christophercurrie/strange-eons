@@ -2,6 +2,12 @@ package ca.cgjennings.apps.arkham;
 
 import ca.cgjennings.apps.arkham.component.GameComponent;
 import java.beans.PropertyChangeListener;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+import resources.Settings;
+import ca.cgjennings.ui.TabbedPaneNavigator;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -60,6 +66,50 @@ class AbstractGameComponentEditorTest {
             verify(mockAppFrame).removePropertyChangeListener(
                     StrangeEonsAppWindow.VIEW_BACKDROP_PROPERTY, pcl);
         }
+    }
+
+    @Test
+    void componentNavigationUsesPreferenceWithoutChangingPreview() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            AppFrame frame = mock(AppFrame.class);
+            StrangeEons app = mock(StrangeEons.class);
+            when(app.getCommandLineArguments()).thenReturn(mock(CommandLineArguments.class));
+            Settings settings = Settings.getUser();
+            String old = settings.get("component-navigation");
+            try (MockedStatic<AppFrame> frames = mockStatic(AppFrame.class);
+                    MockedStatic<StrangeEons> apps = mockStatic(StrangeEons.class)) {
+                frames.when(AppFrame::getApp).thenReturn(frame);
+                apps.when(StrangeEons::getApplication).thenReturn(app);
+
+                for (String mode : new String[]{"tabs", "side", "unknown"}) {
+                    for (boolean reversed : new boolean[]{false, true}) {
+                        settings.set("component-navigation", mode);
+                        TestEditor editor = new TestEditor();
+                        JTabbedPane controls = new JTabbedPane();
+                        controls.addTab("General", new JPanel());
+                        JTabbedPane preview = new JTabbedPane();
+                        JPanel content = new JPanel();
+                        content.add(reversed ? preview : controls);
+                        content.add(reversed ? controls : preview);
+                        editor.setContentPane(content);
+                        editor.localizeForPlatform();
+
+                        assertThat(editor.previewSplitPane.getRightComponent()).isSameAs(preview);
+
+                        if ("side".equals(mode)) {
+                            assertThat(editor.previewSplitPane.getLeftComponent()).isInstanceOf(TabbedPaneNavigator.class);
+                            assertThat(((TabbedPaneNavigator) editor.previewSplitPane.getLeftComponent()).getRightComponent()).isSameAs(controls);
+                        } else {
+                            assertThat(editor.previewSplitPane.getLeftComponent()).isSameAs(controls);
+                        }
+                        try { editor.dispose(); } catch (Throwable ignored) {}
+                    }
+                }
+            } finally {
+                if (old == null) settings.reset("component-navigation");
+                else settings.set("component-navigation", old);
+            }
+        });
     }
 
     private static final class TestEditor extends AbstractGameComponentEditor<GameComponent> {

@@ -178,6 +178,9 @@ AbstractContainer.prototype.addToEditor = function addToEditor(editor, title, he
         // the editor is not showing, reset to the new preferred splitter size
         if (!editor.showing) {
             var splitter = tabPane.parent;
+            if (splitter instanceof Packages.ca.cgjennings.ui.TabbedPaneNavigator) {
+                splitter = splitter.parent;
+            }
             if (splitter instanceof swing.JSplitPane) {
                 splitter["setDividerLocation(int)"](-1);
             }
@@ -212,13 +215,17 @@ AbstractContainer.findEditorTabPane = function findEditorTabPane(editor) {
     else if (splitter instanceof swing.JSplitPane) {
         tabPane = splitter.leftComponent;
 
-        // card editor with consequences (e.g., investigator and monster)
-        if (tabPane instanceof swing.JSplitPane) {
-            tabPane = tabPane.topComponent;
+        // Unwrap side navigation and design support panels.
+        while (tabPane instanceof swing.JSplitPane) {
+            if (tabPane instanceof Packages.ca.cgjennings.ui.TabbedPaneNavigator) {
+                tabPane = tabPane.rightComponent;
+            } else {
+                tabPane = tabPane.topComponent;
+            }
         }
 
         // deck editor
-        else if (tabPane instanceof swing.JPanel) {
+        if (tabPane instanceof swing.JPanel) {
             tabPane = tabPane.getComponent(0);
         }
 

@@ -345,6 +345,11 @@ public abstract class AbstractGameComponentEditor<G extends GameComponent> exten
         content.remove(editPane);
         content.remove(previewPane);
 
+        if (editPane instanceof JTabbedPane
+                && "side".equals(resources.Settings.getUser().get("component-navigation"))) {
+            editPane = new ca.cgjennings.ui.TabbedPaneNavigator((JTabbedPane) editPane);
+        }
+
         previewSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, editPane, previewPane);
         previewSplitPane.setName("previewSplitPane");
         content.setLayout(new BorderLayout());
