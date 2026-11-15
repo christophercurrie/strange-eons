@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.Objects;
 import javax.script.*;
+import org.mozilla.javascript.BaseFunction;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.ImporterTopLevel;
@@ -47,10 +48,38 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
         // empty ImporterTopLevel rather than a full Context.initStandardObjects.
         ImporterTopLevel engineTop = new ImporterTopLevel();
         engineTop.setPrototype(SEScriptEngineFactory.SHARED_TOP);
+        defineEngineImport(engineTop, "importClass");
+        defineEngineImport(engineTop, "importPackage");
         this.topLevel = engineTop;
         if (ScriptEngineMetrics.ENABLED) {
             ScriptEngineMetrics.engineCreated(System.nanoTime() - start);
         }
+    }
+
+    /**
+     * Shadows a shared import function with one that imports into the given
+     * engine scope. The shared function imports into the top-level scope of
+     * the scope it is called with; script scopes have no parent, so without
+     * this it would fall back to the shared scope and leak across engines.
+     */
+    private static void defineEngineImport(ScriptableObject engineTop, String name) {
+        BaseFunction scoped = new BaseFunction() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+                Function shared = (Function) ScriptableObject.getProperty(SEScriptEngineFactory.SHARED_TOP, name);
+                return shared.call(cx, engineTop, engineTop, args);
+            }
+
+            @Override
+            public String getFunctionName() {
+                return name;
+            }
+        };
+        scoped.setParentScope(engineTop);
+        scoped.setPrototype(ScriptableObject.getFunctionPrototype(SEScriptEngineFactory.SHARED_TOP));
+        engineTop.defineProperty(name, scoped, ScriptableObject.DONTENUM);
     }
 
     @Override
@@ -189,13 +218,10 @@ public final class SEScriptEngine extends AbstractScriptEngine implements Invoca
         Objects.requireNonNull(scriptContext, "scriptContext");
 
         BindingsScriptable newScope = new BindingsScriptable(scriptContext);
+        // No parent scope: this must remain the top-level scope, or eval()
+        // becomes indirect, and eval, new Function, and implicit globals
+        // resolve against topLevel instead of the script's bindings.
         newScope.setPrototype(topLevel);
-        // Setting the parent scope is required so that ImporterTopLevel.realScope
-        // can walk up to find a top-level ScriptableObject (the per-engine topLevel).
-        // Without this, getTopLevelScope returns the BindingsScriptable, which is
-        // not a ScriptableObject, and importClass falls back to writing on the
-        // shared SHARED_TOP — leaking import names across engines.
-        newScope.setParentScope(topLevel);
         // predefine some common names for the global scope:
         // Node.js "global", Web Worker "self", ECMAScript 2020 "globalThis"
         newScope.addConst("global", newScope);

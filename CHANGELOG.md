@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix scripts that use `eval` or `new Function` failing to see script globals, such as `ReferenceError: "LRL" is not defined` in the Lord of the Rings LCG plug-in. Undeclared assignments are stored in the script's bindings again.
 - Add the `<keybase>-hires-ppi` (or `-hires-dpi`) sheet setting for the resolution of a template's high resolution substitute (default 300).
 - Image export print and custom defaults use the component's designed bleed margin and, above 300 ppi, its high resolution template resolution. Saved custom settings still take precedence.
 - Add a Miscellaneous Options preference to keep project view state out of `seproject` files. When off, view state moves to `.StrangeEons/seproject-state` the next time a project closes, and that folder can be ignored by source control. On Windows, the folder is also given the hidden attribute.
